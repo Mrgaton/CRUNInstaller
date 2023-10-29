@@ -15,44 +15,53 @@ namespace CRUNInstaller
 
         public static void RemoveFileOnBoot(string FilePath) => MoveFileEx(FilePath, null, 0x4);
 
-        public static void ProcessArguments(string[] args)
+        public static async void ProcessArguments(string[] args)
         {
             string[] lowered = args.Select(arg => arg.ToLower()).ToArray();
 
-            if (lowered[0] == "help")
+            bool showWindow = true;
+            bool shellExecute = true;
+
+            string executePath = null;
+
+            switch (lowered[0])
             {
-                Commands.Help.ShowHelp();
+                case "help":
+                    Commands.Help.ShowHelp();
+                    break;
 
-                return;
-            }
-            else if (lowered[0] == "run")
-            {
-                bool showWindow = bool.Parse(lowered[1]);
-                bool shellExecute = bool.Parse(lowered[2]);
+                case "uninstall":
+                    Commands.Uninstaller.Uninstall();
+                    break;
 
-                CustomRun(args[3], args[4], showWindow, shellExecute);
-            }
-            else if (lowered[0] == "cmd")
-            {
-                bool showWindow = bool.Parse(lowered[1]);
-                bool autoClose = bool.Parse(lowered[2]);
+                case "run":
+                    showWindow = bool.Parse(lowered[1]);
+                    shellExecute = bool.Parse(lowered[2]);
 
-                string execute = args[3];
+                    CustomRun(args[3], args[4], showWindow, shellExecute);
+                    break;
 
-                if (execute.StartsWith("http", StringComparison.InvariantCultureIgnoreCase) && execute.Contains("://")) execute = DownloadFile(execute, ".bat");
+                case "cmd":
+                    showWindow = bool.Parse(lowered[1]);
+                    bool autoClose = bool.Parse(lowered[2]);
 
-                CustomRun("cmd.exe", (autoClose ? "/c " : "/k ") + "/d \"" + execute + "\"", showWindow, true);
-            }
-            else if (lowered[0] == "ps1")
-            {
-                bool showWindow = bool.Parse(lowered[1]);
-                bool shellExecute = bool.Parse(lowered[2]);
+                    executePath = args[3];
 
-                string execute = args[3];
+                    if (executePath.StartsWith("http", StringComparison.InvariantCultureIgnoreCase) && executePath.Contains("://")) executePath = DownloadFile(executePath, ".bat");
 
-                if (execute.StartsWith("http", StringComparison.InvariantCultureIgnoreCase) && execute.Contains("://")) execute = DownloadFile(execute, ".ps1");
+                    CustomRun("cmd.exe", "/d " + (autoClose ? "/c " : "/k ") + "\"" + executePath + "\"", showWindow, true);
+                    break;
 
-                CustomRun(Path.Combine(Environment.SystemDirectory, @"WindowsPowerShell\v1.0\powershell.exe"), "-NoLogo -NonInteractive -NoProfile -ExecutionPolicy Bypass -Command \"& \"" + execute + "\"\"", showWindow, shellExecute);
+                case "ps1":
+                    showWindow = bool.Parse(lowered[1]);
+                    shellExecute = bool.Parse(lowered[2]);
+
+                    executePath = args[3];
+
+                    if (executePath.StartsWith("http", StringComparison.InvariantCultureIgnoreCase) && executePath.Contains("://")) executePath = DownloadFile(executePath, ".ps1");
+
+                    CustomRun(Path.Combine(Environment.SystemDirectory, @"WindowsPowerShell\v1.0\powershell.exe"), "-NoLogo -NonInteractive -NoProfile -ExecutionPolicy Bypass -Command \"& \"" + executePath + "\"\"", showWindow, shellExecute);
+                    break;
             }
         }
 

@@ -55,7 +55,7 @@ namespace CRUNInstaller
                 installKey.SetValue("DisplayName", "CRUN Uninstaller", RegistryValueKind.String);
                 installKey.SetValue("Publisher", "TnfCorp", RegistryValueKind.String);
                 installKey.SetValue("DisplayVersion", programVersion.ToString(), RegistryValueKind.String);
-                installKey.SetValue("UninstallString", "Cmd.exe", RegistryValueKind.String);
+                installKey.SetValue("UninstallString", "\"" + installPath + "\" Uninstall", RegistryValueKind.String);
                 installKey.Close();
             }
 

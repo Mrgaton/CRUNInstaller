@@ -54,6 +54,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ArgsProcessor.cs" />
+    <Compile Include="Commands\Uninstaller.cs" />
     <Compile Include="Commands\Help.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
