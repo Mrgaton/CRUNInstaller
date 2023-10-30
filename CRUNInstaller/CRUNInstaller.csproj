@@ -62,7 +62,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-    <None Include="FlowBlock-Regular.ttf" />
+    <None Include="CrunRfont-Regularo.ttf" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
