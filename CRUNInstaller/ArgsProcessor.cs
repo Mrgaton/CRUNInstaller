@@ -4,6 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace CRUNInstaller
 {
@@ -15,7 +17,7 @@ namespace CRUNInstaller
 
         public static void RemoveFileOnBoot(string FilePath) => MoveFileEx(FilePath, null, 0x4);
 
-        public static async void ProcessArguments(string[] args)
+        public static void ProcessArguments(string[] args)
         {
             string[] lowered = args.Select(arg => arg.ToLower()).ToArray();
 
@@ -23,6 +25,8 @@ namespace CRUNInstaller
             bool shellExecute = true;
 
             string executePath = null;
+
+            MessageBox.Show("\"" + lowered[0] + "\"");
 
             switch (lowered[0])
             {
