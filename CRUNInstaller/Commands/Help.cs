@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reflection;
 
 namespace CRUNInstaller.Commands
 {
@@ -8,11 +9,15 @@ namespace CRUNInstaller.Commands
         {
             Console.WriteLine("CRUN v" + Program.programVersion.ToString() + " - 2023");
 
+            ConsoleColor oldColor = Console.ForegroundColor;
+
             Console.WriteLine();
-            Console.WriteLine("Ussage: crun run [ShowWindow] [UseShellExecute] [FileName] [Arguments]");
-            Console.WriteLine("Ussage: crun cmd [ShowWindow] [CloseOnEnd] [Command\\Batch URI]");
-            Console.WriteLine("Ussage: crun ps1 [ShowWindow] [UseShellExecute] [Command\\Powershell Script URI]");
+            Console.Write("To see examples please visit: ");
+
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine(Program.currentAssembly.GetCustomAttribute<AssemblyDescriptionAttribute>().Description);
             Console.WriteLine();
+            Console.ForegroundColor = oldColor;
         }
     }
 }

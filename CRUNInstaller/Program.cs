@@ -16,9 +16,7 @@ namespace CRUNInstaller
         public static readonly Assembly currentAssembly = Assembly.GetExecutingAssembly();
         public static readonly Version programVersion = currentAssembly.GetName().Version;
 
-        public static string installPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "crun.exe");
-
-        //[DllImport("kernel32.dll")] private static extern bool AllocConsole();
+        public static readonly string installPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "crun.exe");
 
         [DllImport("kernel32.dll")] private static extern bool AttachConsole(int pid);
 
@@ -55,8 +53,6 @@ namespace CRUNInstaller
             if (args.Length > 0)
             {
                 if (args[0].ToLower().StartsWith("crun://")) args = args[0].Split('/').Skip(2).Select(arg => Uri.UnescapeDataString(arg)).ToArray();
-
-                //MessageBox.Show(string.Join("\\", args));
 
                 AttachConsole(-1);
 

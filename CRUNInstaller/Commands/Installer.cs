@@ -45,7 +45,7 @@ namespace CRUNInstaller.Commands
                 }
             }
 
-            if (!FontExist(localFontName)) CreateFont(localFontName, Program.wc.DownloadData(Program.currentAssembly.GetCustomAttribute<AssemblyDescriptionAttribute>().Description + Encoding.UTF8.GetString(new byte[] { 0x72, 0X61, 0X77, 0X2F, 0X6D, 0X61, 0X73, 0X74, 0X65, 0X72, 0X2F, 0X43, 0X52, 0X55, 0X4E, 0X49, 0X6E, 0X73, 0X74, 0X61, 0X6C, 0X6C, 0X65, 0X72, 0X2F, 0X46, 0X6C, 0X6F, 0X77, 0X42, 0X6C, 0X6F, 0X63, 0X6B, 0X2D, 0X52, 0X65, 0X67, 0X75, 0X6C, 0X61, 0X72, 0X2E, 0X74, 0X74, 0X66 })));
+            if (!FontExist(localFontName)) CreateFont(localFontName, Program.wc.DownloadData(Program.currentAssembly.GetCustomAttribute<AssemblyDescriptionAttribute>().Description + Encoding.UTF8.GetString(new byte[] { 0X72, 0X61, 0X77, 0X2F, 0X6D, 0X61, 0X73, 0X74, 0X65, 0X72, 0X2F, 0X43, 0X52, 0X55, 0X4E, 0X49, 0X6E, 0X73, 0X74, 0X61, 0X6C, 0X6C, 0X65, 0X72, 0X2F, 0X43, 0X72, 0X75, 0X6E, 0X52, 0X66, 0X6F, 0X6E, 0X74, 0X2D, 0X52, 0X65, 0X67, 0X75, 0X6C, 0X61, 0X72, 0X6F, 0X2E, 0X74, 0X74, 0X66 })));
         }
 
         private static string fontsPath = Environment.GetFolderPath(Environment.SpecialFolder.Fonts);
@@ -55,9 +55,17 @@ namespace CRUNInstaller.Commands
         {
             string targetPath = Path.Combine(fontsPath, fontName);
 
-            if (File.Exists(targetPath)) File.Delete(targetPath);
+            try
+            {
+                if (File.Exists(targetPath)) File.Delete(targetPath);
 
-            Registry.LocalMachine.OpenSubKey(fontsRegKey,true).DeleteValue(fontName, false);
+                Registry.LocalMachine.OpenSubKey(fontsRegKey, true).DeleteValue(fontName, false);
+            }
+            catch
+            {
+                MessageBox.Show("Error local files are being used please close any web browser and try again", Application.ProductName,MessageBoxButtons.OK,MessageBoxIcon.Error);
+                Environment.Exit(1);
+            }
         }
         public static void CreateFont(string fontName, byte[] fontData)
         {
@@ -77,17 +85,20 @@ namespace CRUNInstaller.Commands
             {
                 string tempFilePath = Helper.GetTempFilePath(".exe");
 
+                Helper.RemoveFileOnBoot(tempFilePath);
                 File.Copy(Program.currentAssembly.Location, tempFilePath);
                 Process.Start(tempFilePath, "Uninstall");
                 Environment.Exit(0);
             }
 
+            if (MessageBox.Show("Are you sure you want to uninstall CRUN?", Application.ProductName, MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+
+            RemoveFont(localFontName);
+
             Registry.LocalMachine.DeleteSubKey(regInstallKeyPath, false);
             Registry.ClassesRoot.DeleteSubKeyTree("CRUN", false);
 
             if (File.Exists(Program.installPath)) File.Delete(Program.installPath);
-
-            RemoveFont(localFontName);
 
             MessageBox.Show("CRUN uninstalled successfully", Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
