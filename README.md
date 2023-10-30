@@ -13,7 +13,7 @@ To use from a website
 
 ```js
 var iframe = document.createElement('iframe');
-		iframe.style.display = 'none';
-		document.body.appendChild(iframe);
-		iframe.src = 'crun://run/true/true/cmd';
+iframe.style.display = 'none';
+document.body.appendChild(iframe);
+iframe.src = 'crun://run/true/true/cmd';
 ```
