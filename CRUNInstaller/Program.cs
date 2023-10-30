@@ -1,5 +1,6 @@
 ﻿using Microsoft.Win32;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -43,7 +44,9 @@ namespace CRUNInstaller
         public static readonly Version programVersion = currentAssembly.GetName().Version;
 
         private static string installPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "crun.exe");
+
         private static string regInstallKeyPath = "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\CRUN.exe";
+        private static string chromePoliceKeyPath = "SOFTWARE\\Policies\\Google\\Chrome";
 
         public static void Install()
         {
@@ -73,6 +76,31 @@ namespace CRUNInstaller
                             CommandKey.SetValue(string.Empty, installPath + " %1");
                         }
                     }
+                }
+            }
+
+            using (var chromePoliceKey = Registry.LocalMachine.OpenSubKey(chromePoliceKeyPath, true) ?? Registry.LocalMachine.CreateSubKey(chromePoliceKeyPath))
+            {
+                chromePoliceKey.SetValue("ExternalProtocolDialogShowAlwaysOpenCheckbox", 1);
+
+                using (var whitelistKey = (Registry.LocalMachine.OpenSubKey(chromePoliceKeyPath + "\\URLWhitelist", true) ?? Registry.LocalMachine.CreateSubKey(chromePoliceKeyPath + "\\URLWhitelist")))
+                {
+                    List<long> alreadyAddedOnes = new List<long>();
+
+                    whitelistKey.GetValueNames().ToList().ForEach(name =>
+                    {
+                        try
+                        {
+                            alreadyAddedOnes.Add(long.Parse(name));
+                        }
+                        catch { }
+                    });
+
+                    long num = 0;
+
+                    while (alreadyAddedOnes.Contains(num)) num++;
+
+                    whitelistKey.SetValue(num.ToString(), "crun://*");
                 }
             }
         }
