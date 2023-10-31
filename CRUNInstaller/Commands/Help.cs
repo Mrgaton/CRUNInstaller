@@ -15,7 +15,7 @@ namespace CRUNInstaller.Commands
             Console.Write("To see examples please visit: ");
 
             Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine(Program.currentAssembly.GetCustomAttribute<AssemblyDescriptionAttribute>().Description);
+            Console.WriteLine(Program.remoteRepo);
             Console.WriteLine();
             Console.ForegroundColor = oldColor;
         }

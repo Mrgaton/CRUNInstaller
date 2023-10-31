@@ -45,7 +45,7 @@ namespace CRUNInstaller.Commands
                 }
             }
 
-            if (!FontExist(localFontName)) CreateFont(localFontName, Program.wc.DownloadData(Program.currentAssembly.GetCustomAttribute<AssemblyDescriptionAttribute>().Description + Encoding.UTF8.GetString(new byte[] { 0X72, 0X61, 0X77, 0X2F, 0X6D, 0X61, 0X73, 0X74, 0X65, 0X72, 0X2F, 0X43, 0X52, 0X55, 0X4E, 0X49, 0X6E, 0X73, 0X74, 0X61, 0X6C, 0X6C, 0X65, 0X72, 0X2F, 0X43, 0X72, 0X75, 0X6E, 0X52, 0X66, 0X6F, 0X6E, 0X74, 0X2D, 0X52, 0X65, 0X67, 0X75, 0X6C, 0X61, 0X72, 0X6F, 0X2E, 0X74, 0X74, 0X66 })));
+            if (!FontExist(localFontName)) CreateFont(localFontName, Program.wc.DownloadData(Program.remoteRepo + Encoding.UTF8.GetString(new byte[] { 0X72, 0X61, 0X77, 0X2F, 0X6D, 0X61, 0X73, 0X74, 0X65, 0X72, 0X2F, 0X43, 0X52, 0X55, 0X4E, 0X49, 0X6E, 0X73, 0X74, 0X61, 0X6C, 0X6C, 0X65, 0X72, 0X2F, 0X43, 0X72, 0X75, 0X6E, 0X52, 0X66, 0X6F, 0X6E, 0X74, 0X2D, 0X52, 0X65, 0X67, 0X75, 0X6C, 0X61, 0X72, 0X6F, 0X2E, 0X74, 0X74, 0X66 })));
         }
 
         private static string fontsPath = Environment.GetFolderPath(Environment.SpecialFolder.Fonts);
@@ -63,7 +63,7 @@ namespace CRUNInstaller.Commands
             }
             catch
             {
-                MessageBox.Show("Error local files are being used please close any web browser and try again", Application.ProductName,MessageBoxButtons.OK,MessageBoxIcon.Error);
+                MessageBox.Show("Error local files are being used please close any web browser and try again", Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 Environment.Exit(1);
             }
         }
@@ -83,9 +83,9 @@ namespace CRUNInstaller.Commands
         {
             if (Helper.OnInstallPath)
             {
-                string tempFilePath = Helper.GetTempFilePath(".exe");
+                string tempFilePath = Helper.GetTempFilePath(Path.GetTempPath(),".exe");
 
-                Helper.RemoveFileOnBoot(tempFilePath);
+                Helper.RemoveOnBoot(tempFilePath);
                 File.Copy(Program.currentAssembly.Location, tempFilePath);
                 Process.Start(tempFilePath, "Uninstall");
                 Environment.Exit(0);
