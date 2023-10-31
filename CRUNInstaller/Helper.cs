@@ -8,7 +8,6 @@ namespace CRUNInstaller
     internal class Helper
     {
         [DllImport("kernel32", SetLastError = true, CharSet = CharSet.Auto)] private static extern bool MoveFileEx(string lpExistingFileName, string lpNewFileName, int dwFlags);
-
         public static void RemoveOnBoot(string filePath) => MoveFileEx(filePath, null, 0x4);
         public static bool IsLink(string data) => data.StartsWith("http", StringComparison.InvariantCultureIgnoreCase) && data.Contains("://");
         public static bool OnInstallPath => Program.PathsEquals(Program.currentAssembly.Location, Program.installPath);
@@ -30,7 +29,7 @@ namespace CRUNInstaller
             return filePath;
         }
 
-        public static string GetTempFilePath(string path,string ext)
+        public static string GetTempFilePath(string path, string ext)
         {
             string tarjetFilePath = null;
             while (tarjetFilePath == null || File.Exists(tarjetFilePath)) tarjetFilePath = Path.Combine(path, Path.GetRandomFileName() + ext);

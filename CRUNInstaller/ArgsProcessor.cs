@@ -12,7 +12,7 @@ namespace CRUNInstaller
         {
             string[] lowered = args.Select(arg => arg.ToLower()).ToArray();
 
-            //MessageBox.Show("\""+ string.Join("\" \"",args) + "\"");
+            MessageBox.Show("\""+ string.Join("\" \"",args) + "\"");
 
             if (args.Length <= 1)
             {

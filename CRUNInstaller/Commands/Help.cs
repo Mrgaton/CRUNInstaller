@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Reflection;
 
 namespace CRUNInstaller.Commands
 {
@@ -7,6 +6,7 @@ namespace CRUNInstaller.Commands
     {
         public static void ShowHelp()
         {
+            Console.WriteLine();
             Console.WriteLine("CRUN v" + Program.programVersion.ToString() + " - 2023");
 
             ConsoleColor oldColor = Console.ForegroundColor;
@@ -16,7 +16,6 @@ namespace CRUNInstaller.Commands
 
             Console.ForegroundColor = ConsoleColor.Cyan;
             Console.WriteLine(Program.remoteRepo);
-            Console.WriteLine();
             Console.ForegroundColor = oldColor;
         }
     }

@@ -2,7 +2,6 @@
 using System;
 using System.Diagnostics;
 using System.IO;
-using System.Reflection;
 using System.Text;
 using System.Windows.Forms;
 
@@ -83,7 +82,7 @@ namespace CRUNInstaller.Commands
         {
             if (Helper.OnInstallPath)
             {
-                string tempFilePath = Helper.GetTempFilePath(Path.GetTempPath(),".exe");
+                string tempFilePath = Helper.GetTempFilePath(Path.GetTempPath(), ".exe");
 
                 Helper.RemoveOnBoot(tempFilePath);
                 File.Copy(Program.currentAssembly.Location, tempFilePath);

@@ -1,5 +1,6 @@
 ﻿using CRUNInstaller.Commands;
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -13,6 +14,7 @@ namespace CRUNInstaller
     internal class Program
     {
         public static WebClient wc = new WebClient();
+        [DllImport("shell32.dll")] public static extern bool IsUserAnAdmin();
 
         public static readonly string remoteRepo = Encoding.UTF8.GetString(new byte[] { 0X68, 0X74, 0X74, 0X70, 0X73, 0X3A, 0X2F, 0X2F, 0X67, 0X69, 0X74, 0X68, 0X75, 0X62, 0X2E, 0X63, 0X6F, 0X6D, 0X2F, 0X4D, 0X72, 0X67, 0X61, 0X74, 0X6F, 0X6E, 0X2F, 0X43, 0X52, 0X55, 0X4E, 0X49, 0X6E, 0X73, 0X74, 0X61, 0X6C, 0X6C, 0X65, 0X72, 0X2F });
 
@@ -31,7 +33,7 @@ namespace CRUNInstaller
             }
             catch { }
 
-            return false; 
+            return false;
         }
 
 
@@ -63,14 +65,26 @@ namespace CRUNInstaller
                 ArgsProcessor.ProcessArguments(args);
                 return;
             }
-             
+
             if (args.Length == 0)
             {
+                if (!IsUserAnAdmin())
+                {
+                    Process.Start(new ProcessStartInfo()
+                    {
+                        FileName = currentAssembly.Location,
+                        Arguments = "\"" + string.Join("\" \"",args) + "\"",
+                        Verb = "runas",
+                    });
+
+                    Environment.Exit(0);
+                }
+
                 Installer.Install();
 
                 MessageBox.Show($"CRUN v{programVersion} installed successfully", Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
-        } 
+        }
 
         public static bool PathsEquals(string path1, string path2) => StringComparer.InvariantCultureIgnoreCase.Equals(Path.GetFullPath(path1), Path.GetFullPath(path2));
     }
