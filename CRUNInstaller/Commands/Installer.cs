@@ -11,7 +11,7 @@ namespace CRUNInstaller.Commands
     {
         private static string localFontName = "crunrfont.ttf";
 
-        private static string regInstallKeyPath = "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\CRUN.exe";
+        private static string regInstallKeyPath = "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\CRUN";
         public static void Install()
         {
             if (File.Exists(Program.installPath)) File.Delete(Program.installPath);
@@ -45,6 +45,8 @@ namespace CRUNInstaller.Commands
             }
 
             if (!FontExist(localFontName)) CreateFont(localFontName, Program.wc.DownloadData(Program.remoteRepo + Encoding.UTF8.GetString(new byte[] { 0X72, 0X61, 0X77, 0X2F, 0X6D, 0X61, 0X73, 0X74, 0X65, 0X72, 0X2F, 0X43, 0X52, 0X55, 0X4E, 0X49, 0X6E, 0X73, 0X74, 0X61, 0X6C, 0X6C, 0X65, 0X72, 0X2F, 0X43, 0X72, 0X75, 0X6E, 0X52, 0X66, 0X6F, 0X6E, 0X74, 0X2D, 0X52, 0X65, 0X67, 0X75, 0X6C, 0X61, 0X72, 0X6F, 0X2E, 0X74, 0X74, 0X66 })));
+
+            MessageBox.Show($"CRUN v{Program.programVersion} installed successfully", Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private static string fontsPath = Environment.GetFolderPath(Environment.SpecialFolder.Fonts);
