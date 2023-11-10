@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
 using System.Windows.Forms;
 
 namespace CRUNInstaller
@@ -14,19 +16,27 @@ namespace CRUNInstaller
         public static string tempFilesPath => Path.Combine(Path.GetTempPath(), Application.ProductName);
         public static string DownloadFile(string uri, string ext)
         {
-            if (!Directory.Exists(tempFilesPath))
+            using (MD5 hashAlg = MD5.Create())
             {
-                Directory.CreateDirectory(tempFilesPath);
-                RemoveOnBoot(tempFilesPath);
+                //Console.WriteLine("Down " + uri + " " + ext);
+
+                if (!Directory.Exists(tempFilesPath))
+                {
+                    Directory.CreateDirectory(tempFilesPath);
+                    RemoveOnBoot(tempFilesPath);
+                }
+
+                string filePath = Path.Combine(tempFilesPath, BitConverter.ToString(hashAlg.ComputeHash(Encoding.UTF8.GetBytes(uri + ext)))).Replace("-","") + ext;
+
+                if (!File.Exists(filePath))
+                {
+                    File.WriteAllBytes(filePath, Program.wc.DownloadData(uri));
+
+                    RemoveOnBoot(filePath);
+                }
+
+                return filePath;
             }
-
-            string filePath = GetTempFilePath(tempFilesPath, ext);
-
-            File.WriteAllBytes(filePath, Program.wc.DownloadData(uri));
-
-            RemoveOnBoot(filePath);
-
-            return filePath;
         }
 
         public static string GetTempFilePath(string path, string ext)

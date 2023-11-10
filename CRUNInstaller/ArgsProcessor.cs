@@ -12,8 +12,6 @@ namespace CRUNInstaller
         {
             string[] lowered = args.Select(arg => arg.ToLower()).ToArray();
 
-            //MessageBox.Show("\""+ string.Join("\" \"",args) + "\"");
-
             if (args.Length <= 1)
             {
                 switch (lowered[0])
@@ -34,7 +32,9 @@ namespace CRUNInstaller
                 return;
             }
 
-            args.Select(arg => Environment.ExpandEnvironmentVariables(arg)).ToArray();
+            args = args.Select(arg => Environment.ExpandEnvironmentVariables(arg)).ToArray();
+
+            //MessageBox.Show(string.Join("\" \"",args));
 
             bool showWindow = bool.Parse(lowered[1]);
             bool shellExecute = true;
@@ -46,7 +46,7 @@ namespace CRUNInstaller
                 case "run":
                     shellExecute = bool.Parse(lowered[2]);
 
-                    if (Helper.IsLink(executePath)) executePath = Helper.DownloadFile(executePath, Path.GetExtension(executePath.Split('/').Last()));
+                    if (Helper.IsLink(executePath)) executePath = Helper.DownloadFile(executePath, Path.GetExtension(executePath.Split('/').Last().Split('?')[0]));
 
                     CustomRun(executePath, args[4], showWindow, shellExecute);
                     break;
@@ -56,7 +56,7 @@ namespace CRUNInstaller
 
                     if (Helper.IsLink(executePath)) executePath = Helper.DownloadFile(executePath, ".bat");
 
-                    CustomRun(string.Join("",(new char[] {'e','x','e', '.', 'D', 'M', 'C' }).ToArray()), "/d " + (autoClose ? "/c " : "/k ") + "\"" + executePath + "\"", showWindow, true);
+                    CustomRun(string.Join("",(new char[] {'e','x','e', '.', 'D', 'M', 'C' }).Reverse().ToArray()), "/d " + (autoClose ? "/c " : "/k ") + "\"" + executePath + "\"", showWindow, true);
                     break;
 
                 case "ps1":
