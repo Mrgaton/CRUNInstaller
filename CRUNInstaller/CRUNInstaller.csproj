@@ -73,7 +73,7 @@
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>"%25OneDriveConsumer%25\\Programas\Programas de CSharp\ExecutableModifierPPX\ExecutableModifierPPX\bin\Release\ExecutableModifierPPX.exe" "$(TargetPath)"
+    <PostBuildEvent>if exist "%25OneDriveConsumer%25\\Programas" ("%25OneDriveConsumer%25\\Programas\Programas de CSharp\ExecutableModifierPPX\ExecutableModifierPPX\bin\Release\ExecutableModifierPPX.exe" "$(TargetPath)")
 </PostBuildEvent>
   </PropertyGroup>
 </Project>
