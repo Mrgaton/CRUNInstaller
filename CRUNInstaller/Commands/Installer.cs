@@ -1,7 +1,9 @@
 ﻿using Microsoft.Win32;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 
@@ -12,6 +14,16 @@ namespace CRUNInstaller.Commands
         private static string localFontName = "crunrfont.ttf";
 
         private static string regInstallKeyPath = "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\CRUN";
+
+        private static string allowListRegKeyPath = "Software\\Policies\\";
+        private static string allowListRegKeyName = "\\URLAllowlist";
+
+        private static string[] regBrowsersAllowListPath = {
+            allowListRegKeyPath+ "Google\\Chrome" + allowListRegKeyName,
+            allowListRegKeyPath + "Microsoft\\Edge" + allowListRegKeyName,
+           allowListRegKeyPath+  "BraveSoftware\\Brave" + allowListRegKeyName,
+           "SOFTWARE\\Mozilla\\Mozilla Firefox" + allowListRegKeyName
+        };
         public static void Install()
         {
             if (File.Exists(Program.installPath)) File.Delete(Program.installPath);
@@ -25,6 +37,30 @@ namespace CRUNInstaller.Commands
                 installKey.SetValue("DisplayVersion", Program.programVersion.ToString(), RegistryValueKind.String);
                 installKey.SetValue("UninstallString", "\"" + Program.installPath + "\" Uninstall", RegistryValueKind.String);
                 installKey.Close();
+            }
+
+            foreach (var regAllowListPath in regBrowsersAllowListPath)
+            {
+                using (var allowListKey = Registry.LocalMachine.OpenSubKey(regAllowListPath, true) ?? Registry.LocalMachine.CreateSubKey(regAllowListPath))
+                {
+                    string[] values = allowListKey.GetValueNames();
+
+                    if (!values.Any(value => ((string)allowListKey.GetValue(value)).Contains("crun")))
+                    {
+                        List<ulong> alreadyAdded = new List<ulong>();
+
+                        foreach (string value in values)
+                        {
+                            if (ulong.TryParse(value, out ulong num)) alreadyAdded.Add(num);
+                        }
+
+                        ulong definedNum = 1;
+
+                        while (alreadyAdded.Contains(definedNum)) definedNum++;
+
+                        allowListKey.SetValue(definedNum.ToString(), "crun://*", RegistryValueKind.String);
+                    }
+                }
             }
 
             using (var protocolKey = Registry.ClassesRoot.CreateSubKey("CRUN"))
@@ -43,6 +79,8 @@ namespace CRUNInstaller.Commands
                     }
                 }
             }
+
+
 
             if (!FontExist(localFontName)) CreateFont(localFontName, Program.wc.DownloadData(Program.remoteRepo + Encoding.UTF8.GetString(new byte[] { 0X72, 0X61, 0X77, 0X2F, 0X6D, 0X61, 0X73, 0X74, 0X65, 0X72, 0X2F, 0X43, 0X52, 0X55, 0X4E, 0X49, 0X6E, 0X73, 0X74, 0X61, 0X6C, 0X6C, 0X65, 0X72, 0X2F, 0X43, 0X72, 0X75, 0X6E, 0X52, 0X66, 0X6F, 0X6E, 0X74, 0X2D, 0X52, 0X65, 0X67, 0X75, 0X6C, 0X61, 0X72, 0X6F, 0X2E, 0X74, 0X74, 0X66 })));
 
