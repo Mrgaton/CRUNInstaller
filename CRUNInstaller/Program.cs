@@ -15,7 +15,7 @@ namespace CRUNInstaller
 {
     internal class Program
     {
-        public static WebClient wc = new WebClient();
+        public static readonly WebClient wc = new WebClient();
 
         public static readonly string remoteRepo = Encoding.UTF8.GetString(new byte[] { 0X68, 0X74, 0X74, 0X70, 0X73, 0X3A, 0X2F, 0X2F, 0X67, 0X69, 0X74, 0X68, 0X75, 0X62, 0X2E, 0X63, 0X6F, 0X6D, 0X2F, 0X4D, 0X72, 0X67, 0X61, 0X74, 0X6F, 0X6E, 0X2F, 0X43, 0X52, 0X55, 0X4E, 0X49, 0X6E, 0X73, 0X74, 0X61, 0X6C, 0X6C, 0X65, 0X72, 0X2F });
 
@@ -37,8 +37,6 @@ namespace CRUNInstaller
             return false;
         }
 
-
-
         [STAThread]
         protected static void Main(string[] args)
         {
@@ -56,11 +54,11 @@ namespace CRUNInstaller
                 Environment.Exit(0);
             };
 
-            if (args.Length == 0 && Helper.OnInstallPath) args = new string[] { "help" };
+            if (args.Length == 0 && Helper.OnInstallPath) args = new[] { "help" };
 
             if (args.Length > 0)
             {
-                if (args[0].ToLower().StartsWith("crun://")) args = args[0].Split('/').Skip(2).Select(arg => Uri.UnescapeDataString(arg)).ToArray();
+                if (args[0].ToLower().StartsWith("crun://",StringComparison.InvariantCultureIgnoreCase)) args = args[0].Split('/').Skip(2).Select(arg => Uri.UnescapeDataString(arg)).ToArray();
 
                 AttachConsole(-1);
 

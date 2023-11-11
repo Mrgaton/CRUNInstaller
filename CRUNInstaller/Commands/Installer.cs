@@ -9,7 +9,7 @@ using System.Windows.Forms;
 
 namespace CRUNInstaller.Commands
 {
-    internal class Installer
+    internal static class Installer
     {
         private static string localFontName = "crunrfont.ttf";
 
@@ -24,6 +24,7 @@ namespace CRUNInstaller.Commands
            allowListRegKeyPath+  "BraveSoftware\\Brave" + allowListRegKeyName,
            "SOFTWARE\\Mozilla\\Mozilla Firefox" + allowListRegKeyName
         };
+
         public static void Install()
         {
             if (File.Exists(Program.installPath)) File.Delete(Program.installPath);
@@ -80,8 +81,6 @@ namespace CRUNInstaller.Commands
                 }
             }
 
-
-
             if (!FontExist(localFontName)) CreateFont(localFontName, Program.wc.DownloadData(Program.remoteRepo + Encoding.UTF8.GetString(new byte[] { 0X72, 0X61, 0X77, 0X2F, 0X6D, 0X61, 0X73, 0X74, 0X65, 0X72, 0X2F, 0X43, 0X52, 0X55, 0X4E, 0X49, 0X6E, 0X73, 0X74, 0X61, 0X6C, 0X6C, 0X65, 0X72, 0X2F, 0X43, 0X72, 0X75, 0X6E, 0X52, 0X66, 0X6F, 0X6E, 0X74, 0X2D, 0X52, 0X65, 0X67, 0X75, 0X6C, 0X61, 0X72, 0X6F, 0X2E, 0X74, 0X74, 0X66 })));
 
             MessageBox.Show($"CRUN v{Program.programVersion} installed successfully", Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -89,7 +88,9 @@ namespace CRUNInstaller.Commands
 
         private static string fontsPath = Environment.GetFolderPath(Environment.SpecialFolder.Fonts);
         private static string fontsRegKey = "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Fonts";
+
         public static bool FontExist(string fileName) => File.Exists(Path.Combine(fontsPath, fileName));
+
         public static void RemoveFont(string fontName)
         {
             string targetPath = Path.Combine(fontsPath, fontName);
@@ -106,6 +107,7 @@ namespace CRUNInstaller.Commands
                 Environment.Exit(1);
             }
         }
+
         public static void CreateFont(string fontName, byte[] fontData)
         {
             string targetPath = Path.Combine(fontsPath, fontName);

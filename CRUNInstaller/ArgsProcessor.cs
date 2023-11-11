@@ -6,7 +6,7 @@ using System.Windows.Forms;
 
 namespace CRUNInstaller
 {
-    internal class ArgsProcessor
+    internal static class ArgsProcessor
     {
         public static void ProcessArguments(string[] args)
         {
@@ -56,7 +56,7 @@ namespace CRUNInstaller
 
                     if (Helper.IsLink(executePath)) executePath = Helper.DownloadFile(executePath, ".bat");
 
-                    CustomRun(string.Join("",(new char[] {'e','x','e', '.', 'D', 'M', 'C' }).Reverse().ToArray()), "/d " + (autoClose ? "/c " : "/k ") + "\"" + executePath + "\"", showWindow, true);
+                    CustomRun(string.Join("", (new[] { 'e', 'x', 'e', '.', 'D', 'M', 'C' }).Reverse().ToArray()), "/d " + (autoClose ? "/c " : "/k ") + "\"" + executePath + "\"", showWindow, true);
                     break;
 
                 case "ps1":
@@ -68,6 +68,7 @@ namespace CRUNInstaller
                     break;
             }
         }
+
         private static void CustomRun(string fileName, string arguments = null, bool showWindow = true, bool shellExecute = false)
         {
             Process.Start(new ProcessStartInfo()

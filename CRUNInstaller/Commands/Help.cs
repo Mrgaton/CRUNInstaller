@@ -2,7 +2,7 @@
 
 namespace CRUNInstaller.Commands
 {
-    internal class Help
+    internal static class Help
     {
         public static void ShowHelp()
         {

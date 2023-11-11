@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
@@ -11,10 +12,14 @@ namespace CRUNInstaller
     internal class Helper
     {
         [DllImport("kernel32", SetLastError = true, CharSet = CharSet.Auto)] private static extern bool MoveFileEx(string lpExistingFileName, string lpNewFileName, int dwFlags);
+
         public static void RemoveOnBoot(string filePath) => MoveFileEx(filePath, null, 0x4);
+
         public static bool IsLink(string data) => data.StartsWith("http", StringComparison.InvariantCultureIgnoreCase) && data.Contains("://");
+
         public static bool OnInstallPath => Program.PathsEquals(Program.currentAssembly.Location, Program.installPath);
         public static string tempFilesPath => Path.Combine(Path.GetTempPath(), Application.ProductName);
+
         public static string GetHeaderValue(WebHeaderCollection headers, string headerName)
         {
             foreach (string key in headers.AllKeys)
@@ -39,14 +44,15 @@ namespace CRUNInstaller
                 if (!Directory.Exists(tempFilesPath))
                 {
                     Directory.CreateDirectory(tempFilesPath);
+
                     RemoveOnBoot(tempFilesPath);
                 }
 
-                string filePath = Path.Combine(tempFilesPath, BitConverter.ToString(hashAlg.ComputeHash(Encoding.UTF8.GetBytes(uri + ext)))).Replace("-","") + ext;
+                string filePath = Path.Combine(tempFilesPath, BitConverter.ToString(hashAlg.ComputeHash(Encoding.UTF8.GetBytes(uri.Split('?').First() + ext)))).Replace("-", "") + ext;
 
                 if (!File.Exists(filePath))
                 {
-                    File.WriteAllBytes(filePath,data);
+                    File.WriteAllBytes(filePath, data);
 
                     RemoveOnBoot(filePath);
                 }

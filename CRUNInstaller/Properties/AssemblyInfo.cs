@@ -1,5 +1,4 @@
-﻿
-using System.Reflection;
+﻿using System.Reflection;
 
 [assembly: AssemblyProduct("CRUN")]
 //[assembly: AssemblyCopyright("Copyright TnfCorp©  2023")]
