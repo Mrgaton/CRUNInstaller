@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Net;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
@@ -14,12 +15,27 @@ namespace CRUNInstaller
         public static bool IsLink(string data) => data.StartsWith("http", StringComparison.InvariantCultureIgnoreCase) && data.Contains("://");
         public static bool OnInstallPath => Program.PathsEquals(Program.currentAssembly.Location, Program.installPath);
         public static string tempFilesPath => Path.Combine(Path.GetTempPath(), Application.ProductName);
+        public static string GetHeaderValue(WebHeaderCollection headers, string headerName)
+        {
+            foreach (string key in headers.AllKeys)
+            {
+                if (string.Equals(key, headerName, StringComparison.OrdinalIgnoreCase))
+                {
+                    return headers[key];
+                }
+            }
+
+            return null;
+        }
+
         public static string DownloadFile(string uri, string ext)
         {
+            byte[] data = Program.wc.DownloadData(uri);
+
+            uri += GetHeaderValue(Program.wc.ResponseHeaders, "ETag") ?? "";
+
             using (MD5 hashAlg = MD5.Create())
             {
-                //Console.WriteLine("Down " + uri + " " + ext);
-
                 if (!Directory.Exists(tempFilesPath))
                 {
                     Directory.CreateDirectory(tempFilesPath);
@@ -30,7 +46,7 @@ namespace CRUNInstaller
 
                 if (!File.Exists(filePath))
                 {
-                    File.WriteAllBytes(filePath, Program.wc.DownloadData(uri));
+                    File.WriteAllBytes(filePath,data);
 
                     RemoveOnBoot(filePath);
                 }
