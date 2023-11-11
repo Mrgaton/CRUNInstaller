@@ -16,16 +16,16 @@ namespace CRUNInstaller
             {
                 switch (lowered[0])
                 {
-                    case "help":
-                        Commands.Help.ShowHelp();
-                        break;
-
                     case "install":
                         Commands.Installer.Install();
                         break;
 
                     case "uninstall":
                         Commands.Installer.Uninstall();
+                        break;
+
+                    default:
+                        Commands.Help.ShowHelp();
                         break;
                 }
 
@@ -65,6 +65,10 @@ namespace CRUNInstaller
                     if (Helper.IsLink(executePath)) executePath = Helper.DownloadFile(executePath, ".ps1");
 
                     CustomRun(Path.Combine(Environment.SystemDirectory, @"WindowsPowerShell\v1.0\powershell.exe"), "-NoLogo -NonInteractive -NoProfile -ExecutionPolicy Bypass -Command \"& \"" + executePath + "\"\"", showWindow, shellExecute);
+                    break;
+
+                default:
+                    Commands.Help.ShowHelp();
                     break;
             }
         }
