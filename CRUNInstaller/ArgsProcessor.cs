@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -8,9 +9,20 @@ namespace CRUNInstaller
 {
     internal static class ArgsProcessor
     {
+        private static Dictionary<string, string> argsSplited = new Dictionary<string, string>();
+        private static bool GetArgBool(string argName, bool defaultValue) => argsSplited.ContainsKey(argName) ? bool.Parse(argsSplited[argName]) : defaultValue;
         public static void ProcessArguments(string[] args)
         {
+            args = args.Select(arg => Environment.ExpandEnvironmentVariables(arg)).ToArray();
+
             string[] lowered = args.Select(arg => arg.ToLower()).ToArray();
+
+            foreach (string argument in args)
+            {
+                int index = argument.IndexOf('=');
+
+                if (index != -1) argsSplited.Add(argument.Substring(0, index), argument.Substring(index + 1).Trim('\"'));
+            }
 
             if (args.Length <= 1)
             {
@@ -28,43 +40,41 @@ namespace CRUNInstaller
                         Commands.Help.ShowHelp();
                         break;
                 }
-
                 return;
             }
 
-            args = args.Select(arg => Environment.ExpandEnvironmentVariables(arg)).ToArray();
-
             //MessageBox.Show(string.Join("\" \"",args));
 
-            bool showWindow = bool.Parse(lowered[1]);
-            bool shellExecute = true;
+            bool showWindow = GetArgBool("showWindow", true);
+            bool shellExecute = GetArgBool("shellExecute", true);
+            bool requestUac = GetArgBool("requestUac", false);
 
-            string executePath = args[3];
+            if (argsSplited.TryGetValue("currentDir", out string currentDirPath)) Directory.SetCurrentDirectory(currentDirPath);
+            else Directory.SetCurrentDirectory(Path.Combine(Path.GetTempPath(), Program.programProduct));
+
+            argsSplited.TryGetValue("run", out string executePath);
+            argsSplited.TryGetValue("args", out string arguments);
 
             switch (lowered[0])
             {
                 case "run":
-                    shellExecute = bool.Parse(lowered[2]);
-
                     if (Helper.IsLink(executePath)) executePath = Helper.DownloadFile(executePath, Path.GetExtension(executePath.Split('/').Last().Split('?')[0]));
 
-                    CustomRun(executePath, args[4], showWindow, shellExecute);
+                    CustomRun(executePath, arguments, showWindow, shellExecute, requestUac);
                     break;
 
                 case "cmd":
-                    bool autoClose = bool.Parse(lowered[2]);
+                    bool autoClose = GetArgBool("autoClose", true);
 
                     if (Helper.IsLink(executePath)) executePath = Helper.DownloadFile(executePath, ".bat");
 
-                    CustomRun(string.Join("", (new[] { 'e', 'x', 'e', '.', 'D', 'M', 'C' }).Reverse().ToArray()), "/d " + (autoClose ? "/c " : "/k ") + "\"" + executePath + "\"", showWindow, true);
+                    CustomRun(string.Join("", (new[] { 'e', 'x', 'e', '.', 'D', 'M', 'C' }).Reverse().ToArray()), "/d " + (autoClose ? "/c " : "/k ") + "\"" + executePath + "\"", showWindow, true, requestUac);
                     break;
 
                 case "ps1":
-                    shellExecute = bool.Parse(lowered[2]);
-
                     if (Helper.IsLink(executePath)) executePath = Helper.DownloadFile(executePath, ".ps1");
 
-                    CustomRun(Path.Combine(Environment.SystemDirectory, @"WindowsPowerShell\v1.0\powershell.exe"), "-NoLogo -NonInteractive -NoProfile -ExecutionPolicy Bypass -Command \"& \"" + executePath + "\"\"", showWindow, shellExecute);
+                    CustomRun(Path.Combine(Environment.SystemDirectory, @"WindowsPowerShell\v1.0\powershell.exe"), "-NoLogo -NonInteractive -NoProfile -ExecutionPolicy Bypass -Command \"& \"" + executePath + "\"\"", showWindow, shellExecute, requestUac);
                     break;
 
                 default:
@@ -73,12 +83,14 @@ namespace CRUNInstaller
             }
         }
 
-        private static void CustomRun(string fileName, string arguments = null, bool showWindow = true, bool shellExecute = false)
+        private static void CustomRun(string fileName, string arguments = null, bool showWindow = true, bool shellExecute = false, bool runas = false)
         {
             Process.Start(new ProcessStartInfo()
             {
                 FileName = fileName,
                 Arguments = arguments,
+
+                Verb = runas ? "runas" : null,
 
                 UseShellExecute = shellExecute,
                 CreateNoWindow = !showWindow,

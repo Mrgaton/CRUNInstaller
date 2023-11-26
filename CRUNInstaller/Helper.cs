@@ -18,16 +18,11 @@ namespace CRUNInstaller
         public static bool IsLink(string data) => data.StartsWith("http", StringComparison.InvariantCultureIgnoreCase) && data.Contains("://");
 
         public static bool OnInstallPath => Program.PathsEquals(Program.currentAssembly.Location, Program.installPath);
-        public static string tempFilesPath => Path.Combine(Path.GetTempPath(), Application.ProductName);
-
         public static string GetHeaderValue(WebHeaderCollection headers, string headerName)
         {
             foreach (string key in headers.AllKeys)
             {
-                if (string.Equals(key, headerName, StringComparison.OrdinalIgnoreCase))
-                {
-                    return headers[key];
-                }
+                if (string.Equals(key, headerName, StringComparison.OrdinalIgnoreCase)) return headers[key];
             }
 
             return null;
@@ -35,6 +30,8 @@ namespace CRUNInstaller
 
         public static string DownloadFile(string uri, string ext)
         {
+            string tempFilesPath = Directory.GetCurrentDirectory();
+
             byte[] data = Program.wc.DownloadData(uri);
 
             uri += GetHeaderValue(Program.wc.ResponseHeaders, "ETag") ?? "";

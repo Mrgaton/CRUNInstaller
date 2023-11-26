@@ -11,18 +11,18 @@ namespace CRUNInstaller.Commands
 {
     internal static class Installer
     {
-        private static string localFontName = "crunrfont.ttf";
+        private static string localFontName = Program.programProduct + "Font.ttf";
 
-        private static string regInstallKeyPath = "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\CRUN";
+        private static string regInstallKeyPath = "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\" + Program.programProduct;
 
-        private static string allowListRegKeyPath = "Software\\Policies\\";
-        private static string allowListRegKeyName = "\\URLAllowlist";
+        private static string policesKeyPath = "Software\\Policies\\";
+        private static string autoLaunchProtocolsKeyValue = "AutoLaunchProtocolsFromOrigins";
 
         private static string[] regBrowsersAllowListPath = {
-            allowListRegKeyPath+ "Google\\Chrome" + allowListRegKeyName,
-            allowListRegKeyPath + "Microsoft\\Edge" + allowListRegKeyName,
-           allowListRegKeyPath+  "BraveSoftware\\Brave" + allowListRegKeyName,
-           "SOFTWARE\\Mozilla\\Mozilla Firefox" + allowListRegKeyName
+            policesKeyPath + "Google\\Chrome",
+            policesKeyPath + "Microsoft\\Edge",
+            policesKeyPath +  "BraveSoftware\\Brave",
+           "SOFTWARE\\Mozilla\\Mozilla Firefox"
         };
 
         public static void Install()
@@ -33,12 +33,14 @@ namespace CRUNInstaller.Commands
 
             using (var installKey = Registry.LocalMachine.OpenSubKey(regInstallKeyPath, true) ?? Registry.LocalMachine.CreateSubKey(regInstallKeyPath))
             {
-                installKey.SetValue("DisplayName", "CRUN Uninstaller", RegistryValueKind.String);
+                installKey.SetValue("DisplayName", Program.programProduct + " Uninstaller", RegistryValueKind.String);
                 installKey.SetValue("Publisher", "TnfCorp", RegistryValueKind.String);
                 installKey.SetValue("DisplayVersion", Program.programVersion.ToString(), RegistryValueKind.String);
                 installKey.SetValue("UninstallString", "\"" + Program.installPath + "\" Uninstall", RegistryValueKind.String);
                 installKey.Close();
             }
+
+            string autolaunchProtocolPayload = "{\"allowed_origins\":[ \"*\" ],\"protocol\":\"" + Program.programProduct + "\"}";
 
             foreach (var regAllowListPath in regBrowsersAllowListPath)
             {
@@ -46,7 +48,23 @@ namespace CRUNInstaller.Commands
                 {
                     string[] values = allowListKey.GetValueNames();
 
-                    if (!values.Any(value => ((string)allowListKey.GetValue(value)).Contains("crun")))
+                    if (!values.Contains(autoLaunchProtocolsKeyValue))
+                    {
+                        allowListKey.SetValue(autoLaunchProtocolsKeyValue, $"[{autolaunchProtocolPayload}]", RegistryValueKind.String);
+                    }
+                    else
+                    {
+                        string json = ((string)allowListKey.GetValue(autoLaunchProtocolsKeyValue)).Trim();
+
+                        if (!json.Split(',').Any(array => array.Contains($"\"{Program.programProduct}\"")))
+                        {
+                            json = (!json.StartsWith("[") && !json.EndsWith("]") ? $"[{autolaunchProtocolPayload}]" : json.Remove(json.Length - 1, 1) + "," + autolaunchProtocolPayload + "]");
+                           
+                            allowListKey.SetValue(autoLaunchProtocolsKeyValue, json, RegistryValueKind.String);
+                        }
+                    }
+
+                    /*if (!values.Any(value => ((string)allowListKey.GetValue(value)).Contains("crun")))
                     {
                         List<ulong> alreadyAdded = new List<ulong>();
 
@@ -60,13 +78,13 @@ namespace CRUNInstaller.Commands
                         while (alreadyAdded.Contains(definedNum)) definedNum++;
 
                         allowListKey.SetValue(definedNum.ToString(), "crun://*", RegistryValueKind.String);
-                    }
+                    }*/
                 }
             }
 
-            using (var protocolKey = Registry.ClassesRoot.CreateSubKey("CRUN"))
+            using (var protocolKey = Registry.ClassesRoot.CreateSubKey(Program.programProduct))
             {
-                protocolKey.SetValue(string.Empty, "URL: CRUN Protocol");
+                protocolKey.SetValue(string.Empty, $"URL: {Program.programProduct} Protocol");
                 protocolKey.SetValue("URL Protocol", string.Empty);
 
                 using (var ProtocolShellKey = protocolKey.CreateSubKey("shell"))
@@ -75,7 +93,7 @@ namespace CRUNInstaller.Commands
                     {
                         using (var CommandKey = OpenKey.CreateSubKey("command"))
                         {
-                            CommandKey.SetValue(string.Empty, Program.installPath + " %1");
+                            CommandKey.SetValue(string.Empty, "\"" + Program.installPath + "\" %1");
                         }
                     }
                 }
@@ -137,11 +155,11 @@ namespace CRUNInstaller.Commands
             RemoveFont(localFontName);
 
             Registry.LocalMachine.DeleteSubKey(regInstallKeyPath, false);
-            Registry.ClassesRoot.DeleteSubKeyTree("CRUN", false);
+            Registry.ClassesRoot.DeleteSubKeyTree(Program.programProduct, false);
 
             if (File.Exists(Program.installPath)) File.Delete(Program.installPath);
 
-            MessageBox.Show("CRUN uninstalled successfully", Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show(Program.programProduct + " uninstalled successfully", Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }
 }

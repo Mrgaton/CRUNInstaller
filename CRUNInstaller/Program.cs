@@ -22,8 +22,9 @@ namespace CRUNInstaller
         public static readonly Assembly currentAssembly = Assembly.GetExecutingAssembly();
         public static readonly Version programVersion = currentAssembly.GetName().Version;
 
-        public static readonly string installPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "crun.exe");
-
+        public static readonly string programProduct = Application.ProductName;
+        public static readonly string installPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), programProduct+ ".exe");
+        public static readonly string tempPermisionsPath = Path.Combine(Path.GetTempPath(), programProduct + ".inf");
         [DllImport("kernel32")] private static extern bool AttachConsole(int pid);
 
         public static bool ConsoleAtached()
@@ -58,7 +59,18 @@ namespace CRUNInstaller
 
             if (args.Length > 0)
             {
-                if (args[0].ToLower().StartsWith("crun://",StringComparison.InvariantCultureIgnoreCase)) args = args[0].Split('/').Skip(2).Select(arg => Uri.UnescapeDataString(arg)).ToArray();
+                if (args[0].ToLower().StartsWith(programProduct + "://", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    if (!File.Exists(tempPermisionsPath))
+                    {
+                        if (MessageBox.Show("Are you sure you want to run external commands from a website?\n\n¡This message won't pop out again until the next restart!", programProduct,MessageBoxButtons.YesNo,MessageBoxIcon.Warning) != DialogResult.Yes) Environment.Exit(0);
+                        
+                        File.Create(tempPermisionsPath).Close();
+                        Helper.RemoveOnBoot(tempPermisionsPath);
+                    }
+
+                    args = args[0].Split('/').Skip(2).Select(arg => Uri.UnescapeDataString(arg)).ToArray();
+                }
 
                 AttachConsole(-1);
 
