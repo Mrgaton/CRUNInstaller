@@ -13,6 +13,7 @@ namespace CRUNInstaller
 
         private static bool GetArgBool(string argName, bool defaultValue) => argsSplited.ContainsKey(argName) ? bool.Parse(argsSplited[argName]) : defaultValue;
 
+        private static string defaultTempPath = Path.Combine(Path.GetTempPath(), Program.programProduct);
         public static void ProcessArguments(string[] args)
         {
             args = args.Select(arg => Environment.ExpandEnvironmentVariables(arg)).ToArray();
@@ -52,7 +53,12 @@ namespace CRUNInstaller
             bool requestUac = GetArgBool("requestUac", false);
 
             if (argsSplited.TryGetValue("currentDir", out string currentDirPath)) Directory.SetCurrentDirectory(currentDirPath);
-            else Directory.SetCurrentDirectory(Path.Combine(Path.GetTempPath(), Program.programProduct));
+            else
+            {
+                if (!Directory.Exists(defaultTempPath)) Directory.CreateDirectory(defaultTempPath);
+
+                Directory.SetCurrentDirectory(defaultTempPath);
+            }
 
             argsSplited.TryGetValue("run", out string executePath);
             argsSplited.TryGetValue("args", out string arguments);
