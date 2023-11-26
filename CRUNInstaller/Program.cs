@@ -23,8 +23,9 @@ namespace CRUNInstaller
         public static readonly Version programVersion = currentAssembly.GetName().Version;
 
         public static readonly string programProduct = Application.ProductName;
-        public static readonly string installPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), programProduct+ ".exe");
+        public static readonly string installPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), programProduct + ".exe");
         public static readonly string tempPermisionsPath = Path.Combine(Path.GetTempPath(), programProduct + ".inf");
+
         [DllImport("kernel32")] private static extern bool AttachConsole(int pid);
 
         public static bool ConsoleAtached()
@@ -63,8 +64,8 @@ namespace CRUNInstaller
                 {
                     if (!File.Exists(tempPermisionsPath))
                     {
-                        if (MessageBox.Show("Are you sure you want to run external commands from a website?\n\n¡This message won't pop out again until the next restart!", programProduct,MessageBoxButtons.YesNo,MessageBoxIcon.Warning) != DialogResult.Yes) Environment.Exit(0);
-                        
+                        if (MessageBox.Show("Are you sure you want to run external commands from a website?\n\n¡This message won't pop out again until the next restart!", programProduct, MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) Environment.Exit(0);
+
                         File.Create(tempPermisionsPath).Close();
                         Helper.RemoveOnBoot(tempPermisionsPath);
                     }

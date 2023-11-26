@@ -18,6 +18,7 @@ namespace CRUNInstaller
         public static bool IsLink(string data) => data.StartsWith("http", StringComparison.InvariantCultureIgnoreCase) && data.Contains("://");
 
         public static bool OnInstallPath => Program.PathsEquals(Program.currentAssembly.Location, Program.installPath);
+
         public static string GetHeaderValue(WebHeaderCollection headers, string headerName)
         {
             foreach (string key in headers.AllKeys)

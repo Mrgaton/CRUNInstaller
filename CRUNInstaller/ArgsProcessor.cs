@@ -10,7 +10,9 @@ namespace CRUNInstaller
     internal static class ArgsProcessor
     {
         private static Dictionary<string, string> argsSplited = new Dictionary<string, string>();
+
         private static bool GetArgBool(string argName, bool defaultValue) => argsSplited.ContainsKey(argName) ? bool.Parse(argsSplited[argName]) : defaultValue;
+
         public static void ProcessArguments(string[] args)
         {
             args = args.Select(arg => Environment.ExpandEnvironmentVariables(arg)).ToArray();

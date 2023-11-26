@@ -59,7 +59,7 @@ namespace CRUNInstaller.Commands
                         if (!json.Split(',').Any(array => array.Contains($"\"{Program.programProduct}\"")))
                         {
                             json = (!json.StartsWith("[") && !json.EndsWith("]") ? $"[{autolaunchProtocolPayload}]" : json.Remove(json.Length - 1, 1) + "," + autolaunchProtocolPayload + "]");
-                           
+
                             allowListKey.SetValue(autoLaunchProtocolsKeyValue, json, RegistryValueKind.String);
                         }
                     }
