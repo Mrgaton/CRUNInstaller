@@ -11,12 +11,33 @@ namespace CRUNInstaller
     {
         private static Dictionary<string, string> argsSplited = new Dictionary<string, string>();
 
-        private static bool GetArgBool(string argName, bool defaultValue) => argsSplited.ContainsKey(argName) ? bool.Parse(argsSplited[argName]) : defaultValue;
+        private static bool ParseBool(string text, bool defaultValue)
+        {
+            string trimed = text.Trim().ToLower();
+
+            if (trimed == "true" || trimed == "1") return true;
+            else if (trimed == "false" || trimed == "0") return false;
+
+            return defaultValue;
+        }
+
+        private static bool GetArgBool(string argName, bool defaultValue)
+        {
+            return argsSplited.ContainsKey(argName) ? ParseBool(argsSplited[argName], defaultValue) : defaultValue;
+        }
 
         private static string defaultTempPath = Path.Combine(Path.GetTempPath(), Program.programProduct);
+
+        private static void SetCurrentDirectory(string dirPath)
+        {
+            if (!Directory.Exists(dirPath)) Directory.CreateDirectory(dirPath);
+
+            Directory.SetCurrentDirectory(dirPath);
+        }
+
         public static void ProcessArguments(string[] args)
         {
-            args = args.Select(arg => Environment.ExpandEnvironmentVariables(arg)).ToArray();
+            args = args.Select(Environment.ExpandEnvironmentVariables).ToArray();
 
             string[] lowered = args.Select(arg => arg.ToLower()).ToArray();
 
@@ -46,19 +67,41 @@ namespace CRUNInstaller
                 return;
             }
 
+            if (argsSplited.TryGetValue("tarjetVersion", out string intendedVersion))
+            {
+                int result = int.MaxValue;
+
+                foreach (string version in intendedVersion.Split(',').OrderBy(e => e))
+                {
+                    var tempResult = Program.programVersion.CompareTo(new Version(version));
+
+                    if (result != 0) result = tempResult;
+                }
+
+                if (result != 0)
+                {
+                    if (result < 0)
+                    {
+                        MessageBox.Show("Error el programa esta desactualizado y no soporta este tipo de commandos por favor actualizalo en la pagina official\n\n\"" + Program.remoteRepo + "\"", Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                    else if (result > 0)
+                    {
+                        MessageBox.Show("El controlador está intentando ejecutar comandos que ya no son soportados", Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+
+                    return;
+                }
+            }
+
             //MessageBox.Show(string.Join("\" \"",args));
 
             bool showWindow = GetArgBool("showWindow", true);
             bool shellExecute = GetArgBool("shellExecute", true);
             bool requestUac = GetArgBool("requestUac", false);
 
-            if (argsSplited.TryGetValue("currentDir", out string currentDirPath)) Directory.SetCurrentDirectory(currentDirPath);
-            else
-            {
-                if (!Directory.Exists(defaultTempPath)) Directory.CreateDirectory(defaultTempPath);
-
-                Directory.SetCurrentDirectory(defaultTempPath);
-            }
+            if (argsSplited.TryGetValue("currentDir", out string currentDirPath)) SetCurrentDirectory
+                    (currentDirPath);
+            else SetCurrentDirectory(defaultTempPath);
 
             argsSplited.TryGetValue("run", out string executePath);
             argsSplited.TryGetValue("args", out string arguments);
