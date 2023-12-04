@@ -21,10 +21,7 @@ namespace CRUNInstaller
             return defaultValue;
         }
 
-        private static bool GetArgBool(string argName, bool defaultValue)
-        {
-            return argsSplited.ContainsKey(argName) ? ParseBool(argsSplited[argName], defaultValue) : defaultValue;
-        }
+        private static bool GetArgBool(string argName, bool defaultValue) => argsSplited.ContainsKey(argName) ? ParseBool(argsSplited[argName], defaultValue) : defaultValue;
 
         private static string defaultTempPath = Path.Combine(Path.GetTempPath(), Program.programProduct);
 
@@ -93,14 +90,11 @@ namespace CRUNInstaller
                 }
             }
 
-            //MessageBox.Show(string.Join("\" \"",args));
-
             bool showWindow = GetArgBool("showWindow", true);
             bool shellExecute = GetArgBool("shellExecute", true);
             bool requestUac = GetArgBool("requestUac", false);
 
-            if (argsSplited.TryGetValue("currentDir", out string currentDirPath)) SetCurrentDirectory
-                    (currentDirPath);
+            if (argsSplited.TryGetValue("currentDir", out string currentDirPath)) SetCurrentDirectory(currentDirPath);
             else SetCurrentDirectory(defaultTempPath);
 
             argsSplited.TryGetValue("run", out string executePath);
