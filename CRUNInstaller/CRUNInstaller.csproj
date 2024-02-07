@@ -70,7 +70,9 @@
     <None Include="App.config" />
     <None Include="CrunRfont-Regularo.ttf" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Content Include="WebScript.js" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>if exist "%25OneDriveConsumer%25\\Programas" ("%25OneDriveConsumer%25\\Programas\Programas de CSharp\ExecutableModifierPPX\ExecutableModifierPPX\bin\Release\ExecutableModifierPPX.exe" "$(TargetPath)")
