@@ -17,10 +17,22 @@ A crappy project that I am experimenting to be able to interact with the compute
 
 Examples:
 
-```
-crun.exe run [ShowWindow] [UseShellExecute] [FileName] [Arguments]"
-crun.exe cmd [ShowWindow] [CloseOnEnd] [Command\\Batch URI]
-crun.exe ps1 [ShowWindow] [UseShellExecute] [Command\\Powershell Script URI]
+```cs
+//For running normal file:
+
+crun.exe run run="somefile.exe" args="/someAction" shellExecute=true showWindow=false requestUac=true
+
+//Running from url
+
+crun.exe cmd run="https://example.com/file.exe" args="/someAction" shellExecute=true showWindow=false requestUac=true
+
+//Running a cmd command
+
+crun.exe cmd run="echo buenos dias" shellExecute=true showWindow=true requestUac=true autoClose=false
+
+//Running powershell commands
+
+crun.exe ps1 run="Get-Help" shellExecute=true showWindow=true requestUac=true autoClose=false
 ```
 
 To use from a website
@@ -29,5 +41,5 @@ To use from a website
 var iframe = document.createElement("iframe");
 iframe.style.display = "none";
 document.body.appendChild(iframe);
-iframe.src = "crun://run/true/true/cmd";
+iframe.src = "crun://run/run="sfc.exe"/args="/scannow"/cmd";
 ```
