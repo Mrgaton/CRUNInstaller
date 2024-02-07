@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
@@ -16,7 +15,9 @@ namespace CRUNInstaller
 
         public static bool IsLink(string data) => data.StartsWith("http", StringComparison.InvariantCultureIgnoreCase) && data.Contains("://");
 
-        public static bool OnInstallPath => Program.PathsEquals(Program.currentAssembly.Location, Program.installPath);
+        public static bool PathsEquals(string path1, string path2) => StringComparer.InvariantCultureIgnoreCase.Equals(Path.GetFullPath(path1), Path.GetFullPath(path2));
+
+        public static bool OnInstallPath => PathsEquals(Program.currentAssembly.Location, Program.installPath);
 
         public static string GetHeaderValue(WebHeaderCollection headers, string headerName)
         {
@@ -28,6 +29,8 @@ namespace CRUNInstaller
             return null;
         }
 
+        public static MD5 hashAlg = MD5.Create();
+
         public static string DownloadFile(string uri, string ext)
         {
             string tempFilesPath = Directory.GetCurrentDirectory();
@@ -36,27 +39,24 @@ namespace CRUNInstaller
 
             uri += GetHeaderValue(Program.wc.ResponseHeaders, "ETag") ?? "";
 
-            using (MD5 hashAlg = MD5.Create())
+            if (!Directory.Exists(tempFilesPath))
             {
-                if (!Directory.Exists(tempFilesPath))
-                {
-                    Directory.CreateDirectory(tempFilesPath);
-
-                    RemoveOnBoot(tempFilesPath);
-                }
-
-                string filePath = Path.Combine(tempFilesPath, BitConverter.ToString(hashAlg.ComputeHash(Encoding.UTF8.GetBytes(uri.Split('?').First() + ext)))).Replace("-", "") + ext;
-
-                if (!File.Exists(filePath))
-                {
-                    File.WriteAllBytes(filePath, data);
-
-                    RemoveOnBoot(filePath);
-                }
-
-                return filePath;
+                Directory.CreateDirectory(tempFilesPath);
+                RemoveOnBoot(tempFilesPath);
             }
+
+            string filePath = Path.Combine(tempFilesPath, BitConverter.ToString(hashAlg.ComputeHash(Encoding.UTF8.GetBytes(uri.Split('?')[0] + ext)))).Replace("-", "") + ext;
+
+            if (!File.Exists(filePath))
+            {
+                File.WriteAllBytes(filePath, data);
+                RemoveOnBoot(filePath);
+            }
+
+            return filePath;
         }
+
+        public static string ToSafeBase64(byte[] b) => Convert.ToBase64String(b).Replace('/', '-').Trim('=');
 
         public static string GetTempFilePath(string path, string ext)
         {

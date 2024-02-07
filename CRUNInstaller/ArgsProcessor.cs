@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Windows.Forms;
 
 namespace CRUNInstaller
@@ -11,7 +12,9 @@ namespace CRUNInstaller
     {
         private static Dictionary<string, string> argsSplited = new Dictionary<string, string>();
 
-        private static bool ParseBool(string text, bool defaultValue)
+        private static string powershellPath = Path.Combine(Environment.SystemDirectory, @"WindowsPowerShell\v1.0\powershell.exe");
+        private static string defaultPowershellArgs = "-NoLogo -NonInteractive -NoProfile -ExecutionPolicy Bypass";
+        private static bool ParseBool(string text, bool defaultValue = default)
         {
             string trimed = text.Trim().ToLower();
 
@@ -34,6 +37,10 @@ namespace CRUNInstaller
 
         public static void ProcessArguments(string[] args)
         {
+            bool urlCalled = args[0].StartsWith(Program.programProduct + "://", StringComparison.InvariantCultureIgnoreCase);
+
+            if (urlCalled) args = args[0].Split('/').Skip(2).Select(Uri.UnescapeDataString).ToArray();
+
             args = args.Select(Environment.ExpandEnvironmentVariables).ToArray();
 
             string[] lowered = args.Select(arg => arg.ToLower()).ToArray();
@@ -43,6 +50,24 @@ namespace CRUNInstaller
                 int index = argument.IndexOf('=');
 
                 if (index != -1) argsSplited.Add(argument.Substring(0, index), argument.Substring(index + 1).Trim('\"'));
+            }
+
+            if (urlCalled)
+            {
+                argsSplited.TryGetValue("cname", out string name);
+                argsSplited.TryGetValue("ctoken", out string token);
+
+                string fileName = Helper.ToSafeBase64(Helper.hashAlg.ComputeHash(Encoding.UTF8.GetBytes(name + token)));
+
+                string tarjetPath = Path.Combine(Program.trustedTokensPath, fileName);
+
+                if (!File.Exists(tarjetPath))
+                {
+                    if (MessageBox.Show($"Are you sure you want to trust the page \"{name}\" for running commands on your pc?\n\n¡This message won't pop out again for commands from the same website!", Program.programProduct, MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) Environment.Exit(0);
+                    if (!Directory.Exists(Program.trustedTokensPath)) Directory.CreateDirectory(Program.trustedTokensPath);
+                    File.Create(tarjetPath).Close();
+                    //Helper.RemoveOnBoot(tarjetPath);
+                }
             }
 
             if (args.Length <= 1)
@@ -118,11 +143,21 @@ namespace CRUNInstaller
 
                 case "ps1":
                     if (Helper.IsLink(executePath)) executePath = Helper.DownloadFile(executePath, ".ps1");
+                    CustomRun(powershellPath, defaultPowershellArgs + " -Command \"& \"" + executePath + "\"\"", showWindow, shellExecute, requestUac);
+                    break;
 
-                    CustomRun(Path.Combine(Environment.SystemDirectory, @"WindowsPowerShell\v1.0\powershell.exe"), "-NoLogo -NonInteractive -NoProfile -ExecutionPolicy Bypass -Command \"& \"" + executePath + "\"\"", showWindow, shellExecute, requestUac);
+                case "eps1":
+                    CustomRun(powershellPath, defaultPowershellArgs + " -EncodedCommand " + executePath, showWindow, shellExecute, requestUac);
                     break;
 
                 default:
+                    if (Helper.IsLink(executePath))
+                    {
+                        executePath = Helper.DownloadFile(executePath, "." + lowered[0]);
+                        CustomRun(executePath, arguments, showWindow, shellExecute, requestUac);
+                        return;
+                    }
+
                     Commands.Help.ShowHelp();
                     break;
             }
