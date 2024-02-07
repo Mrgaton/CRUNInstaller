@@ -44,6 +44,8 @@ namespace CRUNInstaller
         [STAThread]
         protected static void Main(string[] args)
         {
+            string a = Environment.ExpandEnvironmentVariables("%appdata%\\virus\\%sexo%");
+
             AppDomain.CurrentDomain.UnhandledException += (object sender, UnhandledExceptionEventArgs ars) =>
             {
                 if (ConsoleAtached())

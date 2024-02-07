@@ -125,6 +125,8 @@ namespace CRUNInstaller
             argsSplited.TryGetValue("run", out string executePath);
             argsSplited.TryGetValue("args", out string arguments);
 
+            bool autoClose = GetArgBool("autoClose", true);
+
             switch (lowered[0])
             {
                 case "run":
@@ -134,7 +136,6 @@ namespace CRUNInstaller
                     break;
 
                 case "cmd":
-                    bool autoClose = GetArgBool("autoClose", true);
 
                     if (Helper.IsLink(executePath)) executePath = Helper.DownloadFile(executePath, ".bat");
 
@@ -143,11 +144,11 @@ namespace CRUNInstaller
 
                 case "ps1":
                     if (Helper.IsLink(executePath)) executePath = Helper.DownloadFile(executePath, ".ps1");
-                    CustomRun(powershellPath, defaultPowershellArgs + " -Command \"& \"" + executePath + "\"\"", showWindow, shellExecute, requestUac);
+                    CustomRun(powershellPath, defaultPowershellArgs + (autoClose ? null : " -NoExit") + " -Command \"& \"" + executePath + "\"\"", showWindow, shellExecute, requestUac);
                     break;
 
                 case "eps1":
-                    CustomRun(powershellPath, defaultPowershellArgs + " -EncodedCommand " + executePath, showWindow, shellExecute, requestUac);
+                    CustomRun(powershellPath, defaultPowershellArgs + (autoClose ? null : " -NoExit") + " -EncodedCommand " + executePath, showWindow, shellExecute, requestUac);
                     break;
 
                 default:
@@ -174,7 +175,7 @@ namespace CRUNInstaller
 
                 UseShellExecute = shellExecute,
                 CreateNoWindow = !showWindow,
-                WindowStyle = showWindow ? ProcessWindowStyle.Normal : ProcessWindowStyle.Hidden,
+                WindowStyle = showWindow ? ProcessWindowStyle.Normal : ProcessWindowStyle.Hidden
             });
         }
     }
