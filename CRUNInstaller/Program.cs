@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -10,41 +9,34 @@ using System.Windows.Forms;
 
 namespace CRUNInstaller
 {
-    internal class Program
+    internal static class Program
     {
-        public static readonly WebClient wc = new WebClient()
-        {
-            Headers = { { "Referer", "Crun Installer" } }
-        };
+        [DllImport("kernel32")] private static extern bool AttachConsole(int pid);
 
-        public static readonly string remoteRepo = Encoding.UTF8.GetString(new byte[] { 0X68, 0X74, 0X74, 0X70, 0X73, 0X3A, 0X2F, 0X2F, 0X67, 0X69, 0X74, 0X68, 0X75, 0X62, 0X2E, 0X63, 0X6F, 0X6D, 0X2F, 0X4D, 0X72, 0X67, 0X61, 0X74, 0X6F, 0X6E, 0X2F, 0X43, 0X52, 0X55, 0X4E, 0X49, 0X6E, 0X73, 0X74, 0X61, 0X6C, 0X6C, 0X65, 0X72, 0X2F });
+        public static readonly string remoteRepo = Encoding.UTF8.GetString([0X68, 0X74, 0X74, 0X70, 0X73, 0X3A, 0X2F, 0X2F, 0X67, 0X69, 0X74, 0X68, 0X75, 0X62, 0X2E, 0X63, 0X6F, 0X6D, 0X2F, 0X4D, 0X72, 0X67, 0X61, 0X74, 0X6F, 0X6E, 0X2F, 0X43, 0X52, 0X55, 0X4E, 0X49, 0X6E, 0X73, 0X74, 0X61, 0X6C, 0X6C, 0X65, 0X72, 0X2F]);
 
         public static readonly Assembly currentAssembly = Assembly.GetExecutingAssembly();
         public static readonly Version programVersion = currentAssembly.GetName().Version;
 
         public static readonly string programProduct = Application.ProductName;
         public static readonly string installPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), programProduct + ".exe");
-        public static readonly string tempPermisionsPath = Path.Combine(Path.GetTempPath(), programProduct + ".inf");
 
-        [DllImport("kernel32")] private static extern bool AttachConsole(int pid);
+        public static readonly string trustedTokensPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), programProduct);
 
-        public static bool ConsoleAtached()
+        public static readonly WebClient wc = new WebClient()
         {
-            try
-            {
-                if (Console.CursorLeft > int.MinValue) return true;
+            Headers = {
+                { "Referer", "Crun Installer" },
+                { "User-Agent", "Crun V" + programVersion }
             }
-            catch { }
-
-            return false;
-        }
+        };
 
         [STAThread]
-        protected static void Main(string[] args)
+        private static void Main(string[] args)
         {
             AppDomain.CurrentDomain.UnhandledException += (object sender, UnhandledExceptionEventArgs ars) =>
             {
-                if (ConsoleAtached())
+                if (Helper.ConsoleAtached())
                 {
                     Console.WriteLine(((Exception)ars.ExceptionObject).ToString());
                 }
@@ -56,42 +48,23 @@ namespace CRUNInstaller
                 Environment.Exit(0);
             };
 
-            if (args.Length == 0 && Helper.OnInstallPath) args = new[] { "help" };
+            if (args.Length == 0 && Helper.OnInstallPath) args = ["help"];
 
             if (args.Length > 0)
             {
-                if (args[0].ToLower().StartsWith(programProduct + "://", StringComparison.InvariantCultureIgnoreCase))
-                {
-                    if (!File.Exists(tempPermisionsPath))
-                    {
-                        if (MessageBox.Show("Are you sure you want to run external commands from a website?\n\n¡This message won't pop out again until the next restart!", programProduct, MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) Environment.Exit(0);
-
-                        File.Create(tempPermisionsPath).Close();
-                        Helper.RemoveOnBoot(tempPermisionsPath);
-                    }
-
-                    args = args[0].Split('/').Skip(2).Select(arg => Uri.UnescapeDataString(arg)).ToArray();
-                }
-
                 AttachConsole(-1);
-
                 ArgsProcessor.ProcessArguments(args);
                 return;
             }
 
-            if (args.Length == 0)
+            Process.Start(new ProcessStartInfo()
             {
-                Process.Start(new ProcessStartInfo()
-                {
-                    FileName = currentAssembly.Location,
-                    Arguments = "Install",
-                    Verb = "runas",
-                });
+                FileName = currentAssembly.Location,
+                Arguments = "Install",
+                Verb = "runas",
+            });
 
-                Environment.Exit(0);
-            }
+            Environment.Exit(0);
         }
-
-        public static bool PathsEquals(string path1, string path2) => StringComparer.InvariantCultureIgnoreCase.Equals(Path.GetFullPath(path1), Path.GetFullPath(path2));
     }
 }

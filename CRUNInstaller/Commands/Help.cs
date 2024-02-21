@@ -7,7 +7,7 @@ namespace CRUNInstaller.Commands
         public static void ShowHelp()
         {
             Console.WriteLine();
-            Console.WriteLine("CRUN v" + Program.programVersion.ToString() + " - 2023");
+            Console.WriteLine("CRUN v" + Program.programVersion.ToString() + " - 2024");
 
             ConsoleColor oldColor = Console.ForegroundColor;
 
