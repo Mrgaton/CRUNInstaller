@@ -20,7 +20,7 @@ namespace CRUNInstaller
             if (char.ToLower(trimed[0]) == 't' || trimed == "1") return true;
             else if (char.ToLower(trimed[0]) == 'f' || trimed == "0") return false;
 
-            return defaultValue;
+            return bool.TryParse(text, out bool res) ? res : defaultValue;
         }
 
         private static bool GetArgBool(string argName, bool defaultValue) => argsSplited.ContainsKey(argName) ? ParseBool(argsSplited[argName], defaultValue) : defaultValue;
@@ -136,7 +136,12 @@ namespace CRUNInstaller
             {
                 case "run":
                     if (Helper.IsLink(executePath)) executePath = Helper.DownloadFile(executePath, Path.GetExtension(executePath.Split('/').Last().Split('?')[0]));
+                    CustomRun(executePath, arguments, showWindow, shellExecute, requestUac);
+                    break;
 
+                case "zip":
+                    argsSplited.TryGetValue("zip", out string zipUrl);
+                    Helper.DownloadZip(zipUrl);
                     CustomRun(executePath, arguments, showWindow, shellExecute, requestUac);
                     break;
 

@@ -15,13 +15,14 @@ namespace CRUNInstaller.Commands
         private static string regInstallKeyPath = "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\" + Program.programProduct;
 
         private static string policesKeyPath = "Software\\Policies\\";
+
         private static string autoLaunchProtocolsKeyValue = "AutoLaunchProtocolsFromOrigins";
 
         private static string[] regBrowsersAllowListPath = [
             policesKeyPath + "Google\\Chrome",
             policesKeyPath + "Microsoft\\Edge",
-            policesKeyPath +  "BraveSoftware\\Brave",
-           policesKeyPath + "Mozilla\\Firefox"
+            policesKeyPath + "BraveSoftware\\Brave",
+            policesKeyPath + "Mozilla\\Firefox"
         ];
 
         public static void Install()
@@ -91,7 +92,7 @@ namespace CRUNInstaller.Commands
                     {
                         using (var CommandKey = OpenKey.CreateSubKey("command"))
                         {
-                            CommandKey.SetValue(string.Empty, "\"" + Program.installPath + "\" %1");
+                            CommandKey.SetValue(string.Empty, '\"' + Program.installPath + "\" %1");
                         }
                     }
                 }
@@ -103,6 +104,7 @@ namespace CRUNInstaller.Commands
         }
 
         private static string fontsPath = Environment.GetFolderPath(Environment.SpecialFolder.Fonts);
+
         private static string fontsRegKey = "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Fonts";
 
         public static bool FontExist(string fileName) => File.Exists(Path.Combine(fontsPath, fileName));
@@ -153,6 +155,7 @@ namespace CRUNInstaller.Commands
             RemoveFont(localFontName);
 
             Registry.LocalMachine.DeleteSubKey(regInstallKeyPath, false);
+
             Registry.ClassesRoot.DeleteSubKeyTree(Program.programProduct, false);
 
             try

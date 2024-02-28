@@ -1,10 +1,13 @@
 ﻿using System;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Security.Policy;
 using System.Text;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace CRUNInstaller
 {
@@ -32,15 +35,28 @@ namespace CRUNInstaller
 
         public static MD5 hashAlg = MD5.Create();
 
+        public static char fileNameCharSeparator = '^';
+        public static void DownloadZip(string zipFileUrl)
+        {
+            string tempFilesPath = Directory.GetCurrentDirectory();
+
+            string[] urlSplited = zipFileUrl.Split(fileNameCharSeparator);
+
+            string folder = urlSplited.Length > 1 ? urlSplited[1] : zipFileUrl.Hash();
+
+            string combinedFolder = Path.Combine(tempFilesPath, folder);
+            Directory.SetCurrentDirectory(combinedFolder);
+            if (string.IsNullOrEmpty(folder) || !Directory.Exists(combinedFolder)) UnzipFromMemory(Program.wc.OpenRead(urlSplited[0]), string.IsNullOrEmpty(folder) ? tempFilesPath : combinedFolder);
+        }
         public static void DownloadFiles(string[] filesUris = null)
         {
             string tempFilesPath = Directory.GetCurrentDirectory();
 
             foreach (var file in filesUris)
             {
-                var splited = file.Split('^');
+                var splited = file.Split(fileNameCharSeparator);
 
-                string fname = splited.Last();
+                string fname = splited[1];
                 string url = splited[0];
 
                 string path = Path.Combine(tempFilesPath, splited.Length > 1 ? fname : file.Split('/').Last());
@@ -57,10 +73,11 @@ namespace CRUNInstaller
 
             string fileName = null;
 
-            if (uri.Contains('^'))
+            if (uri.Contains(fileNameCharSeparator))
             {
-                var splitedInfo = uri.Split('^');
-                fileName = splitedInfo.Last();
+                var splitedInfo = uri.Split(fileNameCharSeparator);
+
+                fileName = splitedInfo[1];
                 uri = splitedInfo[0];
             }
 
@@ -82,12 +99,13 @@ namespace CRUNInstaller
             }
             else
             {
-                filePath = Path.Combine(tempFilesPath, ToHex(hashAlg.ComputeHash(Encoding.UTF8.GetBytes(uri.Split('?')[0] + ext)))) + ext;
+                filePath = Path.Combine(tempFilesPath, (uri.Split('?')[0] + ext).Hash()) + ext;
             }
 
             if (!File.Exists(filePath))
             {
                 File.WriteAllBytes(filePath, data);
+
                 RemoveOnBoot(filePath);
             }
 
@@ -96,14 +114,14 @@ namespace CRUNInstaller
 
         //private static char GetHexLoweredValue(int i) => (i < 10) ? ((char)(i + 48)) : ((char)(i - 10 + 97));
         private static char GetHexValue(int i) => (i < 10) ? ((char)(i + 48)) : ((char)(i - 10 + 65));
-
+        public static string Hash(this string str) => ToHex(hashAlg.ComputeHash(Encoding.UTF8.GetBytes(str)));
         public static string ToHex(byte[] value)
         {
-            int l = value.Length * 2;
-            char[] array = new char[l];
+            char[] array = new char[value.Length * 2];
+
             int i, di = 0;
 
-            for (i = 0; i < l; i += 2)
+            for (i = 0; i < array.Length; i += 2)
             {
                 byte b = value[di++];
                 array[i] = GetHexValue(b / 16);
@@ -129,7 +147,25 @@ namespace CRUNInstaller
 
             return arr;
         }*/
+        public static void UnzipFromMemory(Stream zipStream, string outputPath)
+        {
+            using (var archive = new ZipArchive(zipStream))
+            {
+                foreach (var entry in archive.Entries)
+                {
+                    var entryPath = Path.Combine(outputPath, entry.FullName.Replace('/', '\\'));
 
+                    if (entry.FullName[entry.FullName.Length - 1] == '/')
+                    {
+                        if (!Directory.Exists(entryPath)) Directory.CreateDirectory(entryPath);
+
+                        continue;
+                    }
+
+                    entry.ExtractToFile(entryPath, overwrite: true);
+                }
+            }
+        }
         public static string ToSafeBase64(byte[] b) => Convert.ToBase64String(b).Replace('/', '-').Trim('=');
 
         public static string GetTempFilePath(string path, string ext)

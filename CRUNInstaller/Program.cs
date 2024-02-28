@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
+using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -16,6 +18,7 @@ namespace CRUNInstaller
         public static readonly string remoteRepo = Encoding.UTF8.GetString([0X68, 0X74, 0X74, 0X70, 0X73, 0X3A, 0X2F, 0X2F, 0X67, 0X69, 0X74, 0X68, 0X75, 0X62, 0X2E, 0X63, 0X6F, 0X6D, 0X2F, 0X4D, 0X72, 0X67, 0X61, 0X74, 0X6F, 0X6E, 0X2F, 0X43, 0X52, 0X55, 0X4E, 0X49, 0X6E, 0X73, 0X74, 0X61, 0X6C, 0X6C, 0X65, 0X72, 0X2F]);
 
         public static readonly Assembly currentAssembly = Assembly.GetExecutingAssembly();
+
         public static readonly Version programVersion = currentAssembly.GetName().Version;
 
         public static readonly string programProduct = Application.ProductName;
@@ -30,7 +33,7 @@ namespace CRUNInstaller
                 { "User-Agent", "Crun V" + programVersion }
             }
         };
-
+        
         [STAThread]
         private static void Main(string[] args)
         {
