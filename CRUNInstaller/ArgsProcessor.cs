@@ -28,7 +28,7 @@ namespace CRUNInstaller
         private static string powershellPath = Path.Combine(Environment.SystemDirectory, @"WindowsPowerShell\v1.0\powershell.exe");
 
         private static string defaultPowerShellArgs = "-NoLogo -NonInteractive -NoProfile -ExecutionPolicy Bypass";
-
+        
         private static string defaultTempPath = Path.Combine(Path.GetTempPath(), Program.programProduct);
 
         private static void SetCurrentDirectory(string dirPath)
@@ -158,8 +158,6 @@ namespace CRUNInstaller
                     break;
 
                 case "eps1":
-                    if (Helper.IsLink(executePath)) executePath = Helper.DownloadFile(executePath, ".ps1");
-
                     CustomRun(powershellPath, defaultPowerShellArgs + (autoClose ? null : " -NoExit") + " -EncodedCommand " + executePath, showWindow, shellExecute, requestUac);
                     break;
 
@@ -194,6 +192,7 @@ namespace CRUNInstaller
             catch (Win32Exception)
             {
                 if (!runas) CustomRun(fileName, arguments, showWindow, shellExecute, true);
+                else throw;
             }
         }
     }

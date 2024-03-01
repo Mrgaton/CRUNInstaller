@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
-using System.IO.Compression;
-using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -22,7 +20,7 @@ namespace CRUNInstaller
         public static readonly Version programVersion = currentAssembly.GetName().Version;
 
         public static readonly string programProduct = Application.ProductName;
-        public static readonly string installPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), programProduct + ".exe");
+        public static readonly string installPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), programProduct.ToLower() + ".exe");
 
         public static readonly string trustedTokensPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), programProduct);
 
@@ -33,19 +31,21 @@ namespace CRUNInstaller
                 { "User-Agent", "Crun V" + programVersion }
             }
         };
-        
+
         [STAThread]
         private static void Main(string[] args)
         {
             AppDomain.CurrentDomain.UnhandledException += (object sender, UnhandledExceptionEventArgs ars) =>
             {
+                string exceptionString = ((Exception)ars.ExceptionObject).ToString();
+
                 if (Helper.ConsoleAtached())
                 {
-                    Console.WriteLine(((Exception)ars.ExceptionObject).ToString());
+                    Console.WriteLine(exceptionString);
                 }
                 else
                 {
-                    MessageBox.Show(((Exception)ars.ExceptionObject).ToString(), Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show(exceptionString, Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
 
                 Environment.Exit(0);

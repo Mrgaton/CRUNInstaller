@@ -5,9 +5,7 @@ using System.Linq;
 using System.Net;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
-using System.Security.Policy;
 using System.Text;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace CRUNInstaller
 {
@@ -36,6 +34,7 @@ namespace CRUNInstaller
         public static MD5 hashAlg = MD5.Create();
 
         public static char fileNameCharSeparator = '^';
+
         public static void DownloadZip(string zipFileUrl)
         {
             string tempFilesPath = Directory.GetCurrentDirectory();
@@ -48,6 +47,7 @@ namespace CRUNInstaller
             Directory.SetCurrentDirectory(combinedFolder);
             if (string.IsNullOrEmpty(folder) || !Directory.Exists(combinedFolder)) UnzipFromMemory(Program.wc.OpenRead(urlSplited[0]), string.IsNullOrEmpty(folder) ? tempFilesPath : combinedFolder);
         }
+
         public static void DownloadFiles(string[] filesUris = null)
         {
             string tempFilesPath = Directory.GetCurrentDirectory();
@@ -58,12 +58,20 @@ namespace CRUNInstaller
 
                 string fname = splited[1];
                 string url = splited[0];
-
+                    
                 string path = Path.Combine(tempFilesPath, splited.Length > 1 ? fname : file.Split('/').Last());
 
                 if (File.Exists(path)) continue;
 
-                File.WriteAllBytes(path, Program.wc.DownloadData(url));
+                using (FileStream fs =  File.OpenWrite(path))
+                {
+                    using (Stream ns = Program.wc.OpenRead(url))
+                    {
+                        ns.CopyTo(fs);
+                    }
+                }
+
+                //File.WriteAllBytes(path, Program.wc.DownloadData(url));
             }
         }
 
@@ -76,7 +84,6 @@ namespace CRUNInstaller
             if (uri.Contains(fileNameCharSeparator))
             {
                 var splitedInfo = uri.Split(fileNameCharSeparator);
-
                 fileName = splitedInfo[1];
                 uri = splitedInfo[0];
             }
@@ -91,16 +98,7 @@ namespace CRUNInstaller
                 RemoveOnBoot(tempFilesPath);
             }
 
-            string filePath;
-
-            if (fileName != null)
-            {
-                filePath = Path.Combine(tempFilesPath, fileName);
-            }
-            else
-            {
-                filePath = Path.Combine(tempFilesPath, (uri.Split('?')[0] + ext).Hash()) + ext;
-            }
+            string filePath = fileName != null ? Path.Combine(tempFilesPath, fileName) : Path.Combine(tempFilesPath, (uri.Split('?')[0] + ext).Hash()) + ext;
 
             if (!File.Exists(filePath))
             {
@@ -114,7 +112,9 @@ namespace CRUNInstaller
 
         //private static char GetHexLoweredValue(int i) => (i < 10) ? ((char)(i + 48)) : ((char)(i - 10 + 97));
         private static char GetHexValue(int i) => (i < 10) ? ((char)(i + 48)) : ((char)(i - 10 + 65));
+
         public static string Hash(this string str) => ToHex(hashAlg.ComputeHash(Encoding.UTF8.GetBytes(str)));
+
         public static string ToHex(byte[] value)
         {
             char[] array = new char[value.Length * 2];
@@ -147,6 +147,7 @@ namespace CRUNInstaller
 
             return arr;
         }*/
+
         public static void UnzipFromMemory(Stream zipStream, string outputPath)
         {
             using (var archive = new ZipArchive(zipStream))
@@ -166,6 +167,7 @@ namespace CRUNInstaller
                 }
             }
         }
+
         public static string ToSafeBase64(byte[] b) => Convert.ToBase64String(b).Replace('/', '-').Trim('=');
 
         public static string GetTempFilePath(string path, string ext)
