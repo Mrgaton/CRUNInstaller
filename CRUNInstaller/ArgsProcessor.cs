@@ -162,9 +162,9 @@ namespace CRUNInstaller
                     break;
 
                 default:
-                    if (Helper.IsLink(lowered[0]))
+                    if (Helper.IsLink(args[0]))
                     {
-                        executePath = Helper.DownloadFile(lowered[0], '.' + lowered[0].Split('?')[0].Split('.').Last());
+                        executePath = Helper.DownloadFile(args[0], '.' + lowered[0].Split('?')[0].Split('.').Last());
 
                         CustomRun(executePath, arguments, showWindow, shellExecute, requestUac);
                         return;

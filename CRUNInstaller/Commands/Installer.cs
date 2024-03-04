@@ -165,7 +165,7 @@ namespace CRUNInstaller.Commands
             catch (Exception ex)
             {
                 MessageBox.Show("There was an error uninstalling the program make sure that the app isnt opened\n\n" + ex.ToString(), Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
+                throw;
             }
 
             if (Directory.Exists(Program.trustedTokensPath)) Directory.Delete(Program.trustedTokensPath, true);
