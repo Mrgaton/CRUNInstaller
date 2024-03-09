@@ -15,7 +15,39 @@
 
 A crappy project that I am experimenting to be able to interact with the computer from web pages
 
+#Default Options
+
+### `showwindow` `boolean`: Hides or shows the file of the process
+### `shellexecute` `boolean`: Turn on shell execute
+### `uac` `boolean`: Request admin elevation to the file
+
+### `cd` (string): Sets the current directory to the specified one, usefoul to specify where to download the files
+### `run` (string): The file path or the url of the file or the command in case of (cmd | ps1 | eps1)
+### `args` (string): The arguments of the file to run
+
+### `files` (string): Files uris to download separated by char `|` wich the file name can be specified after a `^` example:
+
+```
+files="https://github.com/file.exe^f1.exe|https://github.com/otherFile.exe^f2.exe"
+```
+
+
 Examples:
+#RUN
+Runs the file based in the default options
+
+#CMD
+Runs a cmd based in the default options
+### `autoclose` (boolean): Auto closes the cmd after it end whatever is running
+
+#PS1
+### `autoclose` (boolean): Auto closes the powershell after it end whatever is running
+
+#EPS1
+### `autoclose` (boolean): Auto closes the powershell after it end whatever is running
+
+#ZIP
+### `zip` (string): The link of the zip to be downloaded, can also changed the name of the folder based on `^` can be null to be downloaded on the current dir, by default is downloaded on the current dir plus the hash of the zip uri
 
 ```
 crun.exe run [ShowWindow] [UseShellExecute] [FileName] [Arguments]"
