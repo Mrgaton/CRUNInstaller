@@ -51,10 +51,10 @@ Runs a cmd based in the default options
 
 # Examples
 ```
-//Shutdown computer
+//Shutdown computer in 40 seconds
 crun.exe cmd run="shutdown /s /t 40 /f"
 
-//Hello world in encoded powershell
+//Hello world in Base64 encoded powershell command
 crun.exe eps1 showwindow=1 autoclose=0 run="ZQBjAGgAbwAgACIASABlAGwAbABvACAAdwBvAHIAbABkACIA"
 
 //Run sfc scannow
