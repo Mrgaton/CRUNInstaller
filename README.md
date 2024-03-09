@@ -49,10 +49,16 @@ Runs a cmd based in the default options
 # ZIP
 ### `zip` (string): The link of the zip to be downloaded, can also changed the name of the folder based on `^` can be null to be downloaded on the current dir, by default is downloaded on the current dir plus the hash of the zip uri
 
+# Examples
 ```
-crun.exe run [ShowWindow] [UseShellExecute] [FileName] [Arguments]"
-crun.exe cmd [ShowWindow] [CloseOnEnd] [Command\\Batch URI]
-crun.exe ps1 [ShowWindow] [UseShellExecute] [Command\\Powershell Script URI]
+//Shutdown computer
+crun.exe cmd run="shutdown /s /t 40 /f"
+
+//Hello world in encoded powershell
+crun.exe eps1 showwindow=1 autoclose=0 run="ZQBjAGgAbwAgACIASABlAGwAbABvACAAdwBvAHIAbABkACIA"
+
+//Run sfc scannow
+crun.exe run showwindow=1 shellexecute=1 uac=1 run="sfc" args="/ScanNow"
 ```
 
 To use from a website
