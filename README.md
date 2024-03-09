@@ -15,7 +15,7 @@
 
 A crappy project that I am experimenting to be able to interact with the computer from web pages
 
-#Default Options
+# Default Options
 
 ### `showwindow` `boolean`: Hides or shows the file of the process
 ### `shellexecute` `boolean`: Turn on shell execute
@@ -33,20 +33,20 @@ files="https://github.com/file.exe^f1.exe|https://github.com/otherFile.exe^f2.ex
 
 
 Examples:
-#RUN
+# RUN
 Runs the file based in the default options
 
-#CMD
+# CMD
 Runs a cmd based in the default options
 ### `autoclose` (boolean): Auto closes the cmd after it end whatever is running
 
-#PS1
+# PS1
 ### `autoclose` (boolean): Auto closes the powershell after it end whatever is running
 
-#EPS1
+# EPS1
 ### `autoclose` (boolean): Auto closes the powershell after it end whatever is running
 
-#ZIP
+# ZIP
 ### `zip` (string): The link of the zip to be downloaded, can also changed the name of the folder based on `^` can be null to be downloaded on the current dir, by default is downloaded on the current dir plus the hash of the zip uri
 
 ```
