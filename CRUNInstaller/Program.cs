@@ -35,21 +35,26 @@ namespace CRUNInstaller
         [STAThread]
         private static void Main(string[] args)
         {
-            AppDomain.CurrentDomain.UnhandledException += (object sender, UnhandledExceptionEventArgs ars) =>
+            args = ["server"];
+
+            if (!Debugger.IsAttached)
             {
-                string exceptionString = ((Exception)ars.ExceptionObject).ToString();
-
-                if (Helper.ConsoleAtached())
+                AppDomain.CurrentDomain.UnhandledException += (object sender, UnhandledExceptionEventArgs ars) =>
                 {
-                    Console.WriteLine(exceptionString);
-                }
-                else
-                {
-                    MessageBox.Show(exceptionString, Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
+                    string exceptionString = ((Exception)ars.ExceptionObject).ToString();
 
-                Environment.Exit(0);
-            };
+                    if (Helper.ConsoleAtached())
+                    {
+                        Console.WriteLine(exceptionString);
+                    }
+                    else
+                    {
+                        MessageBox.Show(exceptionString, Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+
+                    Environment.Exit(0);
+                };
+            }
 
             if (args.Length == 0 && Helper.OnInstallPath) args = ["help"];
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -13,9 +14,14 @@ namespace CRUNInstaller
     {
         [DllImport("kernel32", SetLastError = true, CharSet = CharSet.Auto)] private static extern bool MoveFileEx(string lpExistingFileName, string lpNewFileName, int dwFlags);
 
-        public static void RemoveOnBoot(string filePath) => MoveFileEx(filePath, null, 0x4);
+        public static bool RemoveFilesOnBoot = true;
 
-        public static bool IsLink(string data) => data.StartsWith("http", StringComparison.InvariantCultureIgnoreCase) && data.Contains("://");
+        public static void RemoveOnBoot(string filePath)
+        {
+            if (RemoveFilesOnBoot) MoveFileEx(filePath, null, 0x4);
+        }
+
+        public static bool IsLink(string data) => data != null && !string.IsNullOrEmpty(data) && data.TrimStart('!').StartsWith("http", StringComparison.InvariantCultureIgnoreCase) && data.Contains("://");
 
         public static bool PathsEquals(string path1, string path2) => StringComparer.InvariantCultureIgnoreCase.Equals(Path.GetFullPath(path1), Path.GetFullPath(path2));
 
@@ -40,12 +46,27 @@ namespace CRUNInstaller
             string tempFilesPath = Directory.GetCurrentDirectory();
 
             string[] urlSplited = zipFileUrl.Split(fileNameCharSeparator);
-
             string folder = urlSplited.Length > 1 ? urlSplited[1] : zipFileUrl.Hash();
 
             string combinedFolder = Path.Combine(tempFilesPath, folder);
+            string hashFileName = Path.Combine(combinedFolder, zipFileUrl.Hash() + ".db");
+
+            if (zipFileUrl[0] != '!' && File.Exists(hashFileName)) return;
+            else if (!Directory.Exists(combinedFolder)) Directory.CreateDirectory(combinedFolder);
+
+            UnzipFromMemory(Program.wc.OpenRead(urlSplited[0].TrimStart('!')), string.IsNullOrEmpty(folder) ? tempFilesPath : combinedFolder);
+
+            RemoveOnBoot(combinedFolder);
+
+            if (File.Exists(hashFileName))
+            {
+                File.Create(hashFileName);
+                File.SetAttributes(hashFileName, FileAttributes.System | FileAttributes.Hidden);
+
+                RemoveOnBoot(hashFileName);
+            }
+
             Directory.SetCurrentDirectory(combinedFolder);
-            if (string.IsNullOrEmpty(folder) || !Directory.Exists(combinedFolder)) UnzipFromMemory(Program.wc.OpenRead(urlSplited[0]), string.IsNullOrEmpty(folder) ? tempFilesPath : combinedFolder);
         }
 
         public static void DownloadFiles(string[] filesUris = null)
@@ -56,16 +77,18 @@ namespace CRUNInstaller
             {
                 var splited = file.Split(fileNameCharSeparator);
 
-                string fname = splited[1];
                 string url = splited[0];
-                    
-                string path = Path.Combine(tempFilesPath, splited.Length > 1 ? fname : file.Split('/').Last());
+                string fileName = splited.Length > 0 ? splited[1] : null;
 
-                if (File.Exists(path)) continue;
+                string path = Path.Combine(tempFilesPath, fileName != null ? fileName.Replace('/', '\\') : file.Split('/').Last());
 
-                using (FileStream fs =  File.OpenWrite(path))
+                if (file[0] != '!' && File.Exists(path)) continue;
+
+                using (FileStream fs = File.OpenWrite(path))
                 {
-                    using (Stream ns = Program.wc.OpenRead(url))
+                    fs.SetLength(0);
+
+                    using (Stream ns = Program.wc.OpenRead(url.TrimStart('!')))
                     {
                         ns.CopyTo(fs);
                     }
@@ -75,34 +98,32 @@ namespace CRUNInstaller
             }
         }
 
-        public static string DownloadFile(string uri, string ext)
+        public static string DownloadFile(string url, string ext = null)
         {
+            if (ext == null) ext = Path.GetExtension(url.Split('/').Last().Split('?')[0]);
+
             string tempFilesPath = Directory.GetCurrentDirectory();
 
             string fileName = null;
 
-            if (uri.Contains(fileNameCharSeparator))
+            if (url.Contains(fileNameCharSeparator))
             {
-                var splitedInfo = uri.Split(fileNameCharSeparator);
+                var splitedInfo = url.Split(fileNameCharSeparator);
+                url = splitedInfo[0];
                 fileName = splitedInfo[1];
-                uri = splitedInfo[0];
             }
 
-            byte[] data = Program.wc.DownloadData(uri);
+            string filePath = fileName != null ? Path.Combine(tempFilesPath, fileName.Replace('/', '\\')) : Path.Combine(tempFilesPath, (url.Split('?')[0] + ext).Hash()) + (string.IsNullOrEmpty(ext) ? ".exe" : ext);
 
-            uri += GetHeaderValue(Program.wc.ResponseHeaders, "ETag") ?? "";
-
-            if (!Directory.Exists(tempFilesPath))
+            if (url[0] == '!' || !File.Exists(filePath))
             {
-                Directory.CreateDirectory(tempFilesPath);
-                RemoveOnBoot(tempFilesPath);
-            }
-
-            string filePath = fileName != null ? Path.Combine(tempFilesPath, fileName) : Path.Combine(tempFilesPath, (uri.Split('?')[0] + ext).Hash()) + ext;
-
-            if (!File.Exists(filePath))
-            {
-                File.WriteAllBytes(filePath, data);
+                using (FileStream fs = File.OpenWrite(filePath))
+                {
+                    using (Stream ns = Program.wc.OpenRead(url.TrimStart('!')))
+                    {
+                        ns.CopyTo(fs);
+                    }
+                }
 
                 RemoveOnBoot(filePath);
             }
@@ -113,7 +134,7 @@ namespace CRUNInstaller
         //private static char GetHexLoweredValue(int i) => (i < 10) ? ((char)(i + 48)) : ((char)(i - 10 + 97));
         private static char GetHexValue(int i) => (i < 10) ? ((char)(i + 48)) : ((char)(i - 10 + 65));
 
-        public static string Hash(this string str) => ToHex(hashAlg.ComputeHash(Encoding.UTF8.GetBytes(str)));
+        public static string Hash(this string str) => Base64Url.ToBase64Url(hashAlg.ComputeHash(Encoding.UTF8.GetBytes(str)));
 
         public static string ToHex(byte[] value)
         {
@@ -124,6 +145,7 @@ namespace CRUNInstaller
             for (i = 0; i < array.Length; i += 2)
             {
                 byte b = value[di++];
+
                 array[i] = GetHexValue(b / 16);
                 array[i + 1] = GetHexValue(b % 16);
             }
@@ -167,9 +189,18 @@ namespace CRUNInstaller
                 }
             }
         }
+        public static void KillClonedInstances()
+        {
+            Process currentProcess = Process.GetCurrentProcess();
 
-        public static string ToSafeBase64(byte[] b) => Convert.ToBase64String(b).Replace('/', '-').Trim('=');
-
+            foreach (var p in Process.GetProcessesByName(Path.GetFileNameWithoutExtension(Program.currentAssembly.Location)))
+            {
+                if (p.Id != currentProcess.Id)
+                {
+                    p.Kill();
+                }
+            }
+        }
         public static string GetTempFilePath(string path, string ext)
         {
             string tarjetFilePath = null;
@@ -186,6 +217,13 @@ namespace CRUNInstaller
             catch { }
 
             return false;
+        }
+
+        public static class Base64Url
+        {
+            public static string ToBase64Url(byte[] data) => Convert.ToBase64String(data).Trim('=').Replace('+', '-').Replace('/', '_');
+
+            public static byte[] FromBase64Url(string data) => Convert.FromBase64String(data.Replace('_', '/').Replace('-', '+').PadRight(data.Length + (4 - data.Length % 4) % 4, '='));
         }
     }
 }

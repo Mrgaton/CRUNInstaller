@@ -16,6 +16,21 @@
     <ProduceOnlyReferenceAssembly>false</ProduceOnlyReferenceAssembly>
     <Utf8Output>true</Utf8Output>
     <TargetFrameworkProfile />
+    <PublishUrl>publish\</PublishUrl>
+    <Install>true</Install>
+    <InstallFrom>Disk</InstallFrom>
+    <UpdateEnabled>false</UpdateEnabled>
+    <UpdateMode>Foreground</UpdateMode>
+    <UpdateInterval>7</UpdateInterval>
+    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
+    <UpdatePeriodically>false</UpdatePeriodically>
+    <UpdateRequired>false</UpdateRequired>
+    <MapFileExtensions>true</MapFileExtensions>
+    <ApplicationRevision>0</ApplicationRevision>
+    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <UseApplicationTrust>false</UseApplicationTrust>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>x64</PlatformTarget>
@@ -50,6 +65,7 @@
     <NoWin32Manifest>true</NoWin32Manifest>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Microsoft.VisualBasic" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.IO.Compression" />
@@ -67,18 +83,36 @@
     <Compile Include="Commands\Installer.cs" />
     <Compile Include="Commands\Help.cs" />
     <Compile Include="Helper.cs" />
+    <Compile Include="HttpServer\HttpExtensions.cs" />
+    <Compile Include="JsonSerealizr.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="UTF8Helper.cs" />
+    <Compile Include="HttpServer\Server.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
     <None Include="CrunRfont-Regularo.ttf" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <BootstrapperPackage Include=".NETFramework,Version=v4.8">
+      <Visible>False</Visible>
+      <ProductName>Microsoft .NET Framework 4.8 %28x86 y x64%29</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>if exist "%25OneDriveConsumer%25\\Programas" ("%25OneDriveConsumer%25\\Programas\Programas de CSharp\ExecutableModifierPPX\ExecutableModifierPPX\bin\Release\ExecutableModifierPPX.exe" "$(TargetPath)")
 </PostBuildEvent>
+  </PropertyGroup>
+  <PropertyGroup>
+    <PreBuildEvent>taskkill /im crun.exe /f 2&gt;nul 1&gt;nul
+EXIT 0</PreBuildEvent>
   </PropertyGroup>
 </Project>

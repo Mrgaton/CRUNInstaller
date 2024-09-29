@@ -150,12 +150,11 @@ namespace CRUNInstaller.Commands
                 Environment.Exit(0);
             }
 
-            if (MessageBox.Show("Are you sure you want to uninstall CRUN?", Application.ProductName, MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+            if (MessageBox.Show("Are you sure you want to uninstall CRUN? :C", Application.ProductName, MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
 
             RemoveFont(localFontName);
 
             Registry.LocalMachine.DeleteSubKey(regInstallKeyPath, false);
-
             Registry.ClassesRoot.DeleteSubKeyTree(Program.programProduct, false);
 
             try
