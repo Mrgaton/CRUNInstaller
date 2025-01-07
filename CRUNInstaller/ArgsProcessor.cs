@@ -84,6 +84,9 @@ namespace CRUNInstaller
                         return;
                     }
 
+                    MessageBox.Show($"Please refresh the page.", Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+
                     if (!Directory.Exists(Program.trustedTokensPath)) Directory.CreateDirectory(Program.trustedTokensPath);
 
                     File.Create(tarjetPath).Close();
@@ -131,8 +134,8 @@ namespace CRUNInstaller
 
             Helper.RemoveFilesOnBoot = GetArgBool("removeOnBoot", Helper.RemoveFilesOnBoot);
 
-            bool showWindow = GetArgBool("showwindow", true);
-            bool shellExecute = GetArgBool("shellexecute", true);
+            bool showWindow = !GetArgBool("hide", true);
+            bool shell = GetArgBool("shell", true);
             bool requestUac = GetArgBool("uac", false);
             bool autoClose = GetArgBool("autoclose", true);
 
@@ -180,13 +183,13 @@ namespace CRUNInstaller
 
                 case "run":
                     if (Helper.IsLink(executePath)) executePath = Helper.DownloadFile(executePath);
-                    CustomRun(executePath, arguments, showWindow, shellExecute, requestUac);
+                    CustomRun(executePath, arguments, showWindow, shell, requestUac);
                     break;
 
                 case "zip":
                     argsSplited.TryGetValue("zip", out string zipUrl);
                     Helper.DownloadZip(zipUrl);
-                    CustomRun(executePath, arguments, showWindow, shellExecute, requestUac);
+                    CustomRun(executePath, arguments, showWindow, shell, requestUac);
                     break;
 
                 case "cmd":
@@ -198,18 +201,18 @@ namespace CRUNInstaller
                 case "ps1":
                     if (Helper.IsLink(executePath)) executePath = Helper.DownloadFile(executePath, ".ps1");
 
-                    CustomRun(powershellPath, defaultPowerShellArgs + (autoClose ? null : " -NoExit") + " -Command \"& \"" + executePath + "\"\"", showWindow, shellExecute, requestUac);
+                    CustomRun(powershellPath, defaultPowerShellArgs + (autoClose ? null : " -NoExit") + " -Command \"& \"" + executePath + "\"\"", showWindow, shell, requestUac);
                     break;
 
                 case "eps1":
-                    CustomRun(powershellPath, defaultPowerShellArgs + (autoClose ? null : " -NoExit") + " -EncodedCommand " + executePath, showWindow, shellExecute, requestUac);
+                    CustomRun(powershellPath, defaultPowerShellArgs + (autoClose ? null : " -NoExit") + " -EncodedCommand " + executePath, showWindow, shell, requestUac);
                     break;
 
                 default:
                     if (Helper.IsLink(args[0]))
                     {
                         executePath = Helper.DownloadFile(args[0], '.' + lowered[0].Split('?')[0].Split('.').Last());
-                        CustomRun(executePath, arguments, showWindow, shellExecute, requestUac);
+                        CustomRun(executePath, arguments, showWindow, shell, requestUac);
                         return;
                     }
 
@@ -218,13 +221,13 @@ namespace CRUNInstaller
             }
         }
 
-        private static void CustomRun(string fileName, string arguments = null, bool showWindow = true, bool shellExecute = false, bool runas = false)
+        private static void CustomRun(string fileName, string arguments = null, bool showWindow = true, bool shell = false, bool runas = false)
         {
 #if DEBUG
             Console.WriteLine("File:" + fileName);
             Console.WriteLine("Args:" + arguments);
             Console.WriteLine("ShowWindow:" + showWindow);
-            Console.WriteLine("ShellExecute:" + shellExecute);
+            Console.WriteLine("shell:" + shell);
             Console.WriteLine("RunAs:" + runas);
 #endif
 
@@ -235,14 +238,14 @@ namespace CRUNInstaller
                     FileName = fileName,
                     Arguments = arguments,
                     Verb = (runas ? "runas" : null),
-                    UseShellExecute = shellExecute,
+                    UseShellExecute = shell,
                     CreateNoWindow = !showWindow,
                     WindowStyle = (showWindow ? ProcessWindowStyle.Normal : ProcessWindowStyle.Hidden)
                 });
             }
             catch (Win32Exception)
             {
-                if (!runas) CustomRun(fileName, arguments, showWindow, shellExecute, true);
+                if (!runas) CustomRun(fileName, arguments, showWindow, shell, true);
                 else throw;
             }
         }

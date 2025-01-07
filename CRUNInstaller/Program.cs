@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Net;
+using System.Net.Http;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -24,10 +25,14 @@ namespace CRUNInstaller
 
         public static readonly string trustedTokensPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), programProduct);
 
-        public static readonly WebClient wc = new WebClient()
+        public static readonly HttpClient client = new HttpClient(new HttpClientHandler()
         {
-            Headers = {
-                { "Referer", "Crun Installer" },
+            AllowAutoRedirect = true,
+            AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
+        })
+        {
+            DefaultRequestHeaders = {
+                { "Referer", "Crun" },
                 { "User-Agent", "Crun V" + programVersion }
             }
         };
@@ -35,7 +40,7 @@ namespace CRUNInstaller
         [STAThread]
         private static void Main(string[] args)
         {
-            args = ["server"];
+            //args = ["server"];
 
             if (!Debugger.IsAttached)
             {

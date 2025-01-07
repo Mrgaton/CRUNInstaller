@@ -6,6 +6,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -72,7 +73,15 @@ namespace CRUNInstaller.HttpServer
 
             }
         }
+        private static HMACMD5 hash = new HMACMD5(Encoding.UTF8.GetBytes("eeee"));
+        private  string EncodePath(string path) {
+            var splited = path.Split('/');
 
+            var result = string.Join("/", splited.Select(e => e.Length > 0 ? BitConverter.ToString(Encoding.UTF8.GetBytes(e)) : ""));
+
+            Console.WriteLine("from " + path + " to " + result);
+            return result;
+            }
         private static async void HandleRequest(HttpListenerRequest req, HttpListenerResponse res)
         {
             try
@@ -83,6 +92,7 @@ namespace CRUNInstaller.HttpServer
                     return;
                 }
 
+#if DEBUG
                 Console.WriteLine("Request");
                 Console.WriteLine(req.Url.ToString());
                 Console.WriteLine(req.Url.AbsolutePath);
@@ -91,6 +101,7 @@ namespace CRUNInstaller.HttpServer
                 Console.WriteLine(req.UserHostName);
                 Console.WriteLine(req.UserAgent);
                 Console.WriteLine();
+#endif
 
                 res.AddHeader("Access-Control-Allow-Origin", "*");
                 res.AddHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
@@ -107,7 +118,16 @@ namespace CRUNInstaller.HttpServer
 
                 switch (req.Url.LocalPath.ToLowerInvariant())
                 {
-                    case "/read":
+                    case ("/gcd"):
+                        res.Return(Directory.GetCurrentDirectory());
+                        break;
+
+                    case ("/scd"):
+                        Directory.SetCurrentDirectory(path);
+                        res.Return("OK");
+                        break;
+
+                    case ("/read"):
                         bool base64 = bool.TryParse(query["base64"], out bool result) && result;
 
                         if (base64) res.Return(Convert.ToBase64String(File.ReadAllBytes(path)));
@@ -115,12 +135,46 @@ namespace CRUNInstaller.HttpServer
                         break;
 
                     case "/list":
-                        string dirPath = (query["path"]);
-                        res.Return(string.Join("\n", Directory.EnumerateDirectories(dirPath).Select(dir => dir + '\\').Concat(Directory.EnumerateFiles(dirPath))));
+                        res.Return(string.Join("\n", Directory.EnumerateDirectories(path).Select(dir => dir + '\\').Concat(Directory.EnumerateFiles(path))));
                         break;
 
                     case "/exist":
                         res.Return((File.Exists(path) || Directory.Exists(path)).ToString());
+                        break;
+
+                    case "/write":
+                        try
+                        {
+                            req.InputStream.CopyTo(File.OpenWrite(path));
+
+                            res.Return("true");
+                        }
+                        catch (Exception ex)
+                        {
+                            res.Return(ex.ToString());
+                        }
+                        break;
+
+                    case "/attributes":
+                        res.Return(((int)File.GetAttributes(path)).ToString());
+                        break;
+
+                    case "/delete":
+                        if (!Directory.Exists(path) && !File.Exists(path))
+                        {
+                            res.StatusCode = 404;
+                            res.Return("Path does not exist");
+                        }
+                        else if (path[path.Length - 1] == '\\')
+                        {
+                            Directory.Delete(path, bool.TryParse(query["recursive"], out bool recursive) && recursive);
+                        }
+                        else
+                        {
+                            File.Delete(path);
+                        }
+
+                        res.Return(true.ToString());
                         break;
 
                     case "/plist":
@@ -147,28 +201,6 @@ namespace CRUNInstaller.HttpServer
                         foreach (var proc in tarjetProcesses) proc.Kill();
 
                         res.Return((tarjetProcesses.Count > 0).ToString());
-                        break;
-
-                    case "/attributes":
-                        res.Return(((int)File.GetAttributes(path)).ToString());
-                        break;
-
-                    case "/delete":
-                        if (!Directory.Exists(path) && !File.Exists(path))
-                        {
-                            res.StatusCode = 404;
-                            res.Return("Path does not exist");
-                        }
-                        else if (path[path.Length - 1] == '\\')
-                        {
-                            Directory.Delete(path, bool.TryParse(query["recursive"], out bool recursive) && recursive);
-                        }
-                        else
-                        {
-                            File.Delete(path);
-                        }
-
-                        res.Return(true.ToString());
                         break;
 
                     case "/run":
@@ -210,7 +242,7 @@ namespace CRUNInstaller.HttpServer
                         break;
 
                     case "/extract":
-                        new ZipArchive(Program.wc.OpenRead(query["url"])).ExtractToDirectory(path);
+                        new ZipArchive(await Program.client.GetStreamAsync(query["url"])).ExtractToDirectory(path);
 
                         res.Return("DONE");
                         break;
@@ -222,7 +254,7 @@ namespace CRUNInstaller.HttpServer
                         break;
 
                     default:
-                        res.Return("En el mercho escuchando al mercho " + req.Url.PathAndQuery.ToString());
+                        res.Return("Not found /" + req.Url.PathAndQuery.ToString());
                         break;
                 }
             }
@@ -238,5 +270,6 @@ namespace CRUNInstaller.HttpServer
             }
             catch { }
         }
+
     }
 }

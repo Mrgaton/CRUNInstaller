@@ -37,7 +37,7 @@ namespace CRUNInstaller
             return null;
         }
 
-        public static MD5 hashAlg = MD5.Create();
+        public static SHA384 hashAlg = SHA384.Create();
 
         public static char fileNameCharSeparator = '^';
 
@@ -54,7 +54,7 @@ namespace CRUNInstaller
             if (zipFileUrl[0] != '!' && File.Exists(hashFileName)) return;
             else if (!Directory.Exists(combinedFolder)) Directory.CreateDirectory(combinedFolder);
 
-            UnzipFromMemory(Program.wc.OpenRead(urlSplited[0].TrimStart('!')), string.IsNullOrEmpty(folder) ? tempFilesPath : combinedFolder);
+            UnzipFromMemory(Program.client.GetStreamAsync(urlSplited[0].TrimStart('!')).Result, string.IsNullOrEmpty(folder) ? tempFilesPath : combinedFolder);
 
             RemoveOnBoot(combinedFolder);
 
@@ -88,7 +88,7 @@ namespace CRUNInstaller
                 {
                     fs.SetLength(0);
 
-                    using (Stream ns = Program.wc.OpenRead(url.TrimStart('!')))
+                    using (Stream ns = Program.client.GetStreamAsync(url.TrimStart('!')).Result)
                     {
                         ns.CopyTo(fs);
                     }
@@ -119,7 +119,7 @@ namespace CRUNInstaller
             {
                 using (FileStream fs = File.OpenWrite(filePath))
                 {
-                    using (Stream ns = Program.wc.OpenRead(url.TrimStart('!')))
+                    using (Stream ns = Program.client.GetStreamAsync(url.TrimStart('!')).Result)
                     {
                         ns.CopyTo(fs);
                     }
