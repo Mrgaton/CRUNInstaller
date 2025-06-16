@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Win32;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
@@ -218,7 +219,29 @@ namespace CRUNInstaller
 
             return false;
         }
-
+        public static RegistryHive ParseHive(string hive)
+        {
+            switch (hive.Replace("_", "").ToUpper())
+            {
+                case "HKLM":
+                case "HKEYLOCALMACHINE":
+                    return RegistryHive.LocalMachine;
+                case "HKCU":
+                case "HKEYCURRENTUSER":
+                    return RegistryHive.CurrentUser;
+                case "HKCR":
+                case "HKEYCLASSESROOT":
+                    return RegistryHive.ClassesRoot;
+                case "HKU":
+                case "HKEYUSERS":
+                    return RegistryHive.Users;
+                case "HKCC":
+                case "HKEYCURRENTCONFIG":
+                    return RegistryHive.CurrentConfig;
+                default:
+                    throw new ArgumentException($"Unknown hive: {hive}");
+            }
+        }
         public static class Base64Url
         {
             public static string ToBase64Url(byte[] data) => Convert.ToBase64String(data).Trim('=').Replace('+', '-').Replace('/', '_');

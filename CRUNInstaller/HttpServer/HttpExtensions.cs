@@ -34,15 +34,15 @@ namespace CRUNInstaller.HttpServer
             res.ContentEncoding = TextEncoding;
             res.ContentLength64 = data.LongLength;
 
-            /*if (close)
-            {
-                res.Close(data, false);
-            }
-            else
-            {*/
             await res.OutputStream.WriteAsync(data, 0, data.Length);
-            res.OutputStream.Close();
-            //}
+            if(close) res.OutputStream.Close();
+        }
+        public static async Task Return(this HttpListenerResponse res, bool close = true)
+        {
+            res.ContentLength64 = 0;
+
+            res.StatusCode = 204;
+            if (close) res.OutputStream.Close();
         }
     }
 }

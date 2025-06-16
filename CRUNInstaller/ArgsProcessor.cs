@@ -63,14 +63,39 @@ namespace CRUNInstaller
 
             if (urlCalled)
             {
+                if (argsSplited.TryGetValue("tarjetversion", out string intendedVersion))
+                {
+                    int result = int.MaxValue;
+
+                    foreach (string version in intendedVersion.Split(',').OrderBy(e => e))
+                    {
+                        if (result != 0) result = Program.programVersion.CompareTo(new Version(version));
+                    }
+
+                    if (result != 0)
+                    {
+                        if (result < 0)
+                        {
+                            MessageBox.Show("Error: The program is out of date and is attempting to use an incompatible driver. Please update it from the official website.\n\n\"" + Program.remoteRepo + "\"", Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            Process.Start(new ProcessStartInfo() { FileName = Program.remoteRepo + "releases/latest", UseShellExecute = true });
+                        }
+                        else if (result > 0)
+                        {
+                            MessageBox.Show("Error: The driver is attempting to execute commands that are no longer supported. Please contact the web owner to update web library from the official website.", Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
+
+                        return;
+                    }
+                }
+
                 argsSplited.TryGetValue("cname", out string name);
                 argsSplited.TryGetValue("ctoken", out string token);
 
-                string fileName = Helper.Base64Url.ToBase64Url(Helper.hashAlg.ComputeHash(Encoding.UTF8.GetBytes(name + token)));
+                string tokenName = Helper.Base64Url.ToBase64Url(Helper.hashAlg.ComputeHash(Encoding.UTF8.GetBytes(name + token)));
 
-                string tarjetPath = Path.Combine(Program.trustedTokensPath, fileName);
+                string tokenPath = Path.Combine(Program.trustedTokensPath, tokenName);
 
-                if (!File.Exists(tarjetPath))
+                if (!File.Exists(tokenPath))
                 {
                     Helper.KillClonedInstances();
 
@@ -89,7 +114,7 @@ namespace CRUNInstaller
 
                     if (!Directory.Exists(Program.trustedTokensPath)) Directory.CreateDirectory(Program.trustedTokensPath);
 
-                    File.Create(tarjetPath).Close();
+                    File.Create(tokenPath).Close();
                     //Helper.RemoveOnBoot(tarjetPath);
                 }
             }
@@ -108,30 +133,6 @@ namespace CRUNInstaller
                 }
             }
 
-            if (argsSplited.TryGetValue("tarjetversion", out string intendedVersion))
-            {
-                int result = int.MaxValue;
-
-                foreach (string version in intendedVersion.Split(',').OrderBy(e => e))
-                {
-                    if (result != 0) result = Program.programVersion.CompareTo(new Version(version));
-                }
-
-                if (result != 0)
-                {
-                    if (result < 0)
-                    {
-                        MessageBox.Show("Error el programa esta desactualizado y no soporta este tipo de commandos por favor actualizalo en la pagina official\n\n\"" + Program.remoteRepo + "\"", Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
-                    else if (result > 0)
-                    {
-                        MessageBox.Show("El controlador está intentando ejecutar comandos que ya no son soportados", Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
-
-                    return;
-                }
-            }
-
             Helper.RemoveFilesOnBoot = GetArgBool("removeOnBoot", Helper.RemoveFilesOnBoot);
 
             bool showWindow = !GetArgBool("hide", true);
@@ -146,12 +147,18 @@ namespace CRUNInstaller
             }
             else SetCurrentDirectory(defaultTempPath);
 
-            argsSplited.TryGetValue("run", out string executePath);
+            string tarjetPath = args[1];
+
+            if (!string.IsNullOrWhiteSpace(tarjetPath) && Helper.IsLink(tarjetPath))
+            {
+                string uriExt = '.' + tarjetPath.Split('?')[0].Split('.').Last();
+
+                tarjetPath = Helper.DownloadFile(tarjetPath, uriExt);
+            }
+
             argsSplited.TryGetValue("args", out string arguments);
 
             argsSplited.TryGetValue("files", out string extraFilesString);
-
-            if (executePath == null && args.Length > 1) executePath = args[1];
 
             if (extraFilesString != null)
             {
@@ -174,6 +181,8 @@ namespace CRUNInstaller
                         return;
                     }
 
+                    argsSplited.TryGetValue("ctoken", out Server.token);
+
                     Server.Start(null, safe);
                     break;
 
@@ -182,37 +191,33 @@ namespace CRUNInstaller
                     break;
 
                 case "run":
-                    if (Helper.IsLink(executePath)) executePath = Helper.DownloadFile(executePath);
-                    CustomRun(executePath, arguments, showWindow, shell, requestUac);
+                    if (Helper.IsLink(tarjetPath)) tarjetPath = Helper.DownloadFile(tarjetPath);
+                    CustomRun(tarjetPath, arguments, showWindow, shell, requestUac);
                     break;
 
                 case "zip":
                     argsSplited.TryGetValue("zip", out string zipUrl);
                     Helper.DownloadZip(zipUrl);
-                    CustomRun(executePath, arguments, showWindow, shell, requestUac);
+                    CustomRun(tarjetPath, arguments, showWindow, shell, requestUac);
                     break;
 
                 case "cmd":
-                    if (Helper.IsLink(executePath)) executePath = Helper.DownloadFile(executePath, ".bat");
-
-                    CustomRun(string.Join("", (new[] { 'e', 'x', 'e', '.', 'D', 'M', 'C' }).Reverse().ToArray()), "/d " + (autoClose ? "/c " : "/k ") + "\"" + executePath + "\"", showWindow, true, requestUac);
+                    CustomRun(string.Join("", (new[] { 'e', 'x', 'e', '.', 'D', 'M', 'C' }).Reverse().ToArray()), "/d " + (autoClose ? "/c " : "/k ") + "\"" + tarjetPath + "\"", showWindow, true, requestUac);
                     break;
 
                 case "ps1":
-                    if (Helper.IsLink(executePath)) executePath = Helper.DownloadFile(executePath, ".ps1");
 
-                    CustomRun(powershellPath, defaultPowerShellArgs + (autoClose ? null : " -NoExit") + " -Command \"& \"" + executePath + "\"\"", showWindow, shell, requestUac);
+                    CustomRun(powershellPath, defaultPowerShellArgs + (autoClose ? null : " -NoExit") + " -Command \"& \"" + tarjetPath + "\"\"", showWindow, shell, requestUac);
                     break;
 
                 case "eps1":
-                    CustomRun(powershellPath, defaultPowerShellArgs + (autoClose ? null : " -NoExit") + " -EncodedCommand " + executePath, showWindow, shell, requestUac);
+                    CustomRun(powershellPath, defaultPowerShellArgs + (autoClose ? null : " -NoExit") + " -EncodedCommand " + tarjetPath, showWindow, shell, requestUac);
                     break;
 
                 default:
-                    if (Helper.IsLink(args[0]))
+                    if (File.Exists(args[0]))
                     {
-                        executePath = Helper.DownloadFile(args[0], '.' + lowered[0].Split('?')[0].Split('.').Last());
-                        CustomRun(executePath, arguments, showWindow, shell, requestUac);
+                        CustomRun(tarjetPath, arguments, showWindow, shell, requestUac);
                         return;
                     }
 

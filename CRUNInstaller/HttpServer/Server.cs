@@ -1,21 +1,29 @@
-﻿using System;
+﻿using Microsoft.Win32;
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Management;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
+using System.ServiceProcess;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Web;
 
 namespace CRUNInstaller.HttpServer
 {
     internal class Server
     {
         public static HttpListener listener;
+
+        public static string token;
 
         private static readonly ushort[] defaultPorts = [51213, 61213];
 
@@ -69,8 +77,15 @@ namespace CRUNInstaller.HttpServer
                 HttpListenerRequest req = ctx.Request;
                 HttpListenerResponse res = ctx.Response;
 
-                Task.Factory.StartNew(() => HandleRequest(req, res));
+#if !DEBUG
+                if (req.Headers.GetValues("authorization")[0] != token)
+                {
+                    res.Close();
+                    return;
+                }
+#endif
 
+                Task.Factory.StartNew(() => HandleRequest(req, res));
             }
         }
         private static HMACMD5 hash = new HMACMD5(Encoding.UTF8.GetBytes("eeee"));
@@ -82,6 +97,8 @@ namespace CRUNInstaller.HttpServer
             Console.WriteLine("from " + path + " to " + result);
             return result;
             }
+
+        private const string PathNotFound = "Path not found";
         private static async void HandleRequest(HttpListenerRequest req, HttpListenerResponse res)
         {
             try
@@ -105,12 +122,19 @@ namespace CRUNInstaller.HttpServer
 
                 res.AddHeader("Access-Control-Allow-Origin", "*");
                 res.AddHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+                res.AddHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
-                if ((req.HttpMethod == "POST") && (req.Url.AbsolutePath == "/close")) runServer = false;
+                if (req.HttpMethod == "OPTIONS")    
+                {
+                    res.StatusCode = 200;
+                    res.Close();
+                    return;
+                }
+                else if ((req.HttpMethod == "POST") && (req.Url.AbsolutePath == "/close")) runServer = false;
 
                 NameValueCollection query = new NameValueCollection();
 
-                foreach (string key in req.QueryString.AllKeys) query[key] = Environment.ExpandEnvironmentVariables(req.QueryString[key]);
+                foreach (string key in req.QueryString.AllKeys) query[key] = HttpUtility.UrlDecode( Environment.ExpandEnvironmentVariables(req.QueryString[key]));
 
                 //var query = req.QueryString.AllKeys.ToDictionary(k => k, k => Environment.ExpandEnvironmentVariables(req.QueryString[k]));
 
@@ -118,16 +142,16 @@ namespace CRUNInstaller.HttpServer
 
                 switch (req.Url.LocalPath.ToLowerInvariant())
                 {
-                    case ("/gcd"):
+                    case "/gcd":
                         res.Return(Directory.GetCurrentDirectory());
                         break;
 
-                    case ("/scd"):
+                    case "/scd":
                         Directory.SetCurrentDirectory(path);
-                        res.Return("OK");
+                        res.Return();
                         break;
 
-                    case ("/read"):
+                    case "/read":
                         bool base64 = bool.TryParse(query["base64"], out bool result) && result;
 
                         if (base64) res.Return(Convert.ToBase64String(File.ReadAllBytes(path)));
@@ -135,35 +159,68 @@ namespace CRUNInstaller.HttpServer
                         break;
 
                     case "/list":
-                        res.Return(string.Join("\n", Directory.EnumerateDirectories(path).Select(dir => dir + '\\').Concat(Directory.EnumerateFiles(path))));
+                        var pattern = query["pattern"];
+
+                        if (!string.IsNullOrEmpty(pattern))
+                        {
+                            res.Return(string.Join("\n", Directory.EnumerateDirectories(path, pattern).Select(dir => dir + '\\').Concat(Directory.EnumerateFiles(path, pattern))));
+
+                        }
+                        else
+                        {
+                            res.Return(string.Join("\n", Directory.EnumerateDirectories(path).Select(dir => dir + '\\').Concat(Directory.EnumerateFiles(path))));
+                        }
                         break;
 
                     case "/exist":
                         res.Return((File.Exists(path) || Directory.Exists(path)).ToString());
                         break;
 
-                    case "/write":
-                        try
+                    case "/move":
+                        if (path[path.Length - 1] == '\\')
                         {
-                            req.InputStream.CopyTo(File.OpenWrite(path));
+                            Directory.Move(path, query["new"]);
+                        }
+                        else
+                        {
+                            File.Move(path, query["new"]);
+                        }
+                        
+                        res.Return();
+                        break;
 
-                            res.Return("true");
-                        }
-                        catch (Exception ex)
-                        {
-                            res.Return(ex.ToString());
-                        }
+                    case "/write":
+                        req.InputStream.CopyTo(File.OpenWrite(path));
+                        res.Return();
+                        break;
+
+                    case "/download":
+                        (await Program.client.GetStreamAsync(query["url"])).CopyTo(File.OpenWrite(path));
+                        res.Return();
                         break;
 
                     case "/attributes":
-                        res.Return(((int)File.GetAttributes(path)).ToString());
+                        if (!Directory.Exists(path) && !File.Exists(path))
+                        {
+                            res.StatusCode = 401;
+                            res.Return(PathNotFound);
+                        }
+                        else if (path[path.Length - 1] == '\\')
+                        {
+                            res.Return((new DirectoryInfo(path).Attributes).ToString());
+                        }
+                        else
+                        {
+                            res.Return((File.GetAttributes(path)).ToString());
+                        }
+
                         break;
 
                     case "/delete":
                         if (!Directory.Exists(path) && !File.Exists(path))
                         {
-                            res.StatusCode = 404;
-                            res.Return("Path does not exist");
+                            res.StatusCode = 401;
+                            res.Return(PathNotFound);
                         }
                         else if (path[path.Length - 1] == '\\')
                         {
@@ -178,13 +235,13 @@ namespace CRUNInstaller.HttpServer
                         break;
 
                     case "/plist":
-                        res.Return(string.Join("\n", Process.GetProcesses().Select(p => p.ProcessName + ':' + p.Id)));
+                        res.Return(string.Join("\n", Process.GetProcesses().Select(p => p.ProcessName + '|' + p.Id)));
                         break;
 
                     case "/pkill":
                         string processName = query["name"];
 
-                        List<Process> tarjetProcesses = new List<Process>();
+                        List<Process> tarjetProcesses = [];
 
                         if (processName != null)
                         {
@@ -196,20 +253,21 @@ namespace CRUNInstaller.HttpServer
                                 }
                             }
                         }
-                        else if (int.TryParse(query["id"], out int pid) && pid > 0) tarjetProcesses.Add(Process.GetProcessById(pid));
+                        else if (int.TryParse(query["pid"], out int pid) && pid > 0) tarjetProcesses.Add(Process.GetProcessById(pid));
 
                         foreach (var proc in tarjetProcesses) proc.Kill();
-
-                        res.Return((tarjetProcesses.Count > 0).ToString());
+                        res.Return(tarjetProcesses.Count.ToString());
                         break;
 
                     case "/run":
                         bool hide = ArgsProcessor.ParseBool(query["hide"]);
                         bool async = ArgsProcessor.ParseBool(query["async"]);
 
+                        if (Helper.IsLink(path)) path = Helper.DownloadFile(path);
+
                         ProcessStartInfo info = new ProcessStartInfo()
                         {
-                            FileName = query["file"],
+                            FileName = path,
                             Arguments = query["args"],
 
                             CreateNoWindow = hide,
@@ -224,39 +282,202 @@ namespace CRUNInstaller.HttpServer
 
                         if (async)
                         {
-                            res.Return("OK");
+                            res.Return();
                         }
                         else
                         {
-                            StringBuilder output = new StringBuilder();
-
-                            while (!p.StandardOutput.EndOfStream)
+                            using (var sw = new StreamWriter(res.OutputStream))
                             {
-                                output.AppendLine(p.StandardOutput.ReadLine());
+                                while (!p.StandardOutput.EndOfStream)
+                                {
+
+                                    sw.WriteLine(p.StandardOutput.ReadLine());
+                                }
                             }
 
                             p.WaitForExit();
-
-                            res.Return(output.ToString());
+                            res.OutputStream.Close();
                         }
                         break;
 
-                    case "/extract":
+                    case "/unzip":
                         new ZipArchive(await Program.client.GetStreamAsync(query["url"])).ExtractToDirectory(path);
 
-                        res.Return("DONE");
+                        res.Return();
                         break;
 
                     case "/health":
                         HealthCheck = DateTime.Now;
 
-                        res.Return("OK");
+                        res.Return();
                         break;
 
+                    case "/service/start":
+                        new ServiceController(path).Start(query["args"].Split('|'));
+                        res.Return();
+                        break;
+                    case "/service/stop":
+                        new ServiceController(path).Stop();
+                        res.Return();
+                        break;
+                    case "/service/restart":
+                        var controller = new ServiceController(path);
+                        controller.Stop();
+                        controller.Start(query["args"].Split('|'));
+                        res.Return();
+                        break;
+                  /*  case "/service/type":
+                        res.Return(new ServiceController(path).ServiceType.ToString());
+                        break;
+                    case "/service/status":
+                        res.Return(new ServiceController(path).Status.ToString());
+                        break;
+                    case "/service/startType":
+                        res.Return(new ServiceController(path).StartType.ToString());
+                        break;
+                    case "/service/handle":
+                        res.Return(new ServiceController(path).ServiceHandle.ToString());
+                        break;*/
+                    case "/service/info":
+                        var service = new ServiceController(path);
+
+                        res.Return(service.ServiceType + '|' + service.Status.ToString() + '|' + service.StartType + '|' + service.ServiceHandle);
+                        break;
+                    case "/service/list":
+                        var content = ServiceController.GetServices().Select(s =>
+                        s.DisplayName + '|' + s.ServiceType + '|' + s.StartType + '|' + s.Status);
+
+                        res.Return(string.Join("\n", content));
+                        break;
+
+                    case "/env":
+                        var sb = new StringBuilder();
+                        foreach(DictionaryEntry env in Environment.GetEnvironmentVariables())
+                        {
+                            sb.AppendLine(env.Key + "=" + env.Value);
+                        }
+                        res.Return(sb.ToString());
+                        break;
+
+                    case "/registry/get":
+                        {
+                            var subKeyPath = path.Contains("\\") ? path.Substring(path.IndexOf('\\') + 1) : string.Empty;
+                            var hive = Helper.ParseHive(path.Split('\\')[0]);
+                            using (var regKey = RegistryKey.OpenBaseKey(hive, RegistryView.Default).OpenSubKey(subKeyPath))
+                            {
+                                var val = regKey?.GetValue(query["key"]);
+
+                                if (val is byte[])
+                                {
+                                    res.Return(BitConverter.ToString((byte[])val));
+                                }
+                                else
+                                {
+                                    res.Return(val?.ToString() ?? string.Empty);
+                                }
+                            }
+                            break;
+                        }
+
+                    case "/registry/set":
+                        {
+                            var subKeyPath = path.Contains("\\") ? path.Substring(path.IndexOf('\\') + 1) : string.Empty;
+                            var hive = Helper.ParseHive(path.Split('\\')[0]);
+                            using (var regKey = RegistryKey.OpenBaseKey(hive, RegistryView.Default).CreateSubKey(subKeyPath))
+                            {
+                                var kind = (RegistryValueKind)Enum.Parse(typeof(RegistryValueKind), query["kind"], true);
+                                regKey.SetValue(query["key"], query["value"], kind);
+                                res.Return();
+                            }
+                            break;
+                        }
+
+                    case "/registry/delete":
+                        {
+                            var subKeyPath = path.Contains("\\") ? path.Substring(path.IndexOf('\\') + 1) : string.Empty;
+                            var hive = Helper.ParseHive(path.Split('\\')[0]);
+                            using (var regKey = RegistryKey.OpenBaseKey(hive, RegistryView.Default).OpenSubKey(subKeyPath, writable: true))
+                            {
+                                regKey?.DeleteValue(query["key"], throwOnMissingValue: false);
+                                res.Return();
+                            }
+                            break;
+                        }
+
+                    case "/registry/list":
+                        {
+                            var subKeyPath = path.Contains("\\") ? path.Substring(path.IndexOf('\\') + 1) : string.Empty;
+                            var hive = Helper.ParseHive(path.Split('\\')[0]);
+                            using (var regKey = RegistryKey.OpenBaseKey(hive, RegistryView.Default).OpenSubKey(subKeyPath, writable: false))
+                            {
+                                res.Return(string.Join("\n", regKey.GetValueNames().Select(v => v + '=' + regKey.GetValue(v)).Concat(regKey.GetSubKeyNames().Select(skn => skn + '\\'))));
+                            }
+                            break;
+                        }
+
+                    case "/management/query":
+                        var oquery = path.StartsWith("win32_", StringComparison.OrdinalIgnoreCase) ? path : "Win32_" + path;
+                        string formattedResult;
+
+                        using (var searcher = new ManagementObjectSearcher("select * from " + oquery))
+                        using (var results = searcher.Get())
+                        using (var wmiObject = results.Cast<ManagementObject>().FirstOrDefault())
+                        {
+                            if (wmiObject == null)
+                            {
+                                formattedResult = $"No WMI object found for query: 'select * from {oquery}'";
+                            }
+                            else
+                            {
+                                var formattedProperties = wmiObject.Properties
+                                    .Cast<PropertyData>()
+                                    .Select(prop => {
+                                        string key = prop.Name;
+                                        object value = prop.Value;
+                                        string valueString;
+
+                                        if (value == null)
+                                        {
+                                            valueString = "null";
+                                        }
+                                        else if (prop.IsArray && value is byte[] byteArray)
+                                        {
+                                            valueString = string.Concat(byteArray.Select(b => b.ToString("X2")));
+                                        }
+                                        else if (prop.IsArray && value is Array arr)
+                                        {
+                                            var elements = arr.Cast<object>()
+                                                              .Select(el => el?.ToString() ?? "null");
+                                            valueString = $"[{string.Join(", ", elements)}]";
+                                        }
+                                        else
+                                        {
+                                            valueString = value.ToString();
+                                        }
+
+                                        return $"{key}={valueString}";
+                                    });
+
+                                // Join all the formatted "key=value" strings with newlines
+                                formattedResult = string.Join(Environment.NewLine, formattedProperties);
+                            }
+                        } // wmiObject (if not null), results, and searcher are automatically disposed here
+
+                        res.Return(formattedResult);
+                        break;
+
+                    case "/dllinvoke":
+                       var returned = DynamicInvoker.InvokeSingle(query["dll"], query["method"], query["params"], System.Runtime.InteropServices.CallingConvention.Winapi, DynamicInvoker.TypeMap[query["returnType"]]);
+
+                        res.Return(returned);
+                        break;
+
+
                     default:
-                        res.Return("Not found /" + req.Url.PathAndQuery.ToString());
+                        res.Return("Not found " + req.Url.PathAndQuery.ToString());
                         break;
                 }
+
             }
             catch (Exception ex)
             {

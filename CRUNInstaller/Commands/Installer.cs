@@ -39,7 +39,7 @@ namespace CRUNInstaller.Commands
                 installKey.SetValue("UninstallString", "\"" + Program.installPath + "\" Uninstall", RegistryValueKind.String);
             }
 
-            string autolaunchProtocolPayload = "{\"protocol\":\"" + Program.programProduct.ToLower() + "\",\"allowed_origins\":[\"https://*\",\"https://gato.ovh\"]}";
+            string autolaunchProtocolPayload = "{\"protocol\":\"" + Program.programProduct.ToLower() + "\",\"allowed_origins\":[\"https://gato.ovh\"]}";
 
             foreach (var regAllowListPath in regBrowsersAllowListPath)
             {

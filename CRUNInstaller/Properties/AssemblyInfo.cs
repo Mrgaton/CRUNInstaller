@@ -2,4 +2,4 @@
 
 [assembly: AssemblyProduct("CRUN")]
 //[assembly: AssemblyCopyright("Copyright TnfCorp©  2023")]
-[assembly: AssemblyVersion("1.6")]
+[assembly: AssemblyVersion("1.7")]
