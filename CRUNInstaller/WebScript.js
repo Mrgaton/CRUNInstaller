@@ -1,6 +1,8 @@
 ﻿var CrunHelper = null;
 var CrunServer = null;
 
+// Por fin actualizo el crun.js que ya estaba un poco chungo.
+
 (() => {
 	let width;
 	let body = document.body;
@@ -36,7 +38,7 @@ var CrunServer = null;
 		);
 	};
 
-	const targetedVersions = ['1.0.0.5', '1.6.0.0'];
+	const targetedVersions = ['1.7.0.0'];
 
 	const protocolPath = 'crun://';
 
@@ -53,17 +55,15 @@ var CrunServer = null;
 
 	let tokenKey = 'CRNTOKEN';
 
-	const token =
-		this.localStorage.getItem(tokenKey) ||
-		this.localStorage.setItem(tokenKey, randomString(10));
+	const tokenSize = 32;
 
-	const cfetch = async (data) => {
-		await healthCheck();
+	let token = this.localStorage.getItem(tokenKey);
 
-		const res = await fetch(encodeURI(uri + '/' + data));
+	if (!token || token.length < 32) {
+		token = randomString(tokenSize);
 
-		return await res.text();
-	};
+		this.localStorage.setItem(tokenKey, token);
+	}
 
 	CrunHelper = {
 		installPage: function () {
@@ -83,34 +83,61 @@ var CrunServer = null;
 			let args = [];
 
 			args.push(runType);
-			args.push(element.getAttribute('hide') ?? 'false');
 
 			switch (runType) {
 				case 'run':
-					args.push(element.getAttribute('shell') ?? 'true');
 					args.push(element.getAttribute('fileName') ?? 'cmd.exe');
-					args.push(element.getAttribute('arguments') ?? '');
+					args.push(
+						'args=' + element.getAttribute('arguments') ?? ''
+					);
 					break;
 
 				case 'cmd':
-					args.push(element.getAttribute('closeOnEnd') ?? 'true');
 					args.push(element.getAttribute('command') ?? 'cmd.exe');
+					args.push(
+						'autoclose=' + element.getAttribute('autoclose') ??
+							'true'
+					);
+					break;
+
+				case 'zip':
+					args.push(
+						element.getAttribute('fileName') ?? 'example.exe'
+					);
+					args.push('zip=' + element.getAttribute('zip'));
+					args.push(
+						'autoclose=' + element.getAttribute('autoclose') ??
+							'true'
+					);
 					break;
 
 				case 'ps1':
-					args.push(
-						element.getAttribute('UseShellExecute') ?? 'true'
-					);
 					args.push(element.getAttribute('command') ?? 'echo hola');
+					args.push(
+						'autoclose=' + element.getAttribute('autoclose') ??
+							'true'
+					);
+					break;
+
+				case 'eps1':
+					args.push(element.getAttribute('command') ?? 'echo hola');
+					args.push(
+						'autoclose=' + element.getAttribute('autoclose') ??
+							'true'
+					);
 					break;
 			}
 
+			args.push('shell=' + element.getAttribute('shell') ?? 'true');
+			args.push('hide=' + element.getAttribute('hide') ?? 'false');
+			args.push('uac=' + element.getAttribute('uac') ?? 'false');
+
 			console.log(...args);
 
-			this.run(...args);
+			this.runCore(...args);
 		},
 
-		run: function (...command) {
+		runCore: function (...command) {
 			command.push('tarjetVersion="' + targetedVersions.join(',') + '"');
 			command.push('cname=' + window.location.hostname);
 			command.push('ctoken=' + token);
@@ -123,62 +150,83 @@ var CrunServer = null;
 			console.debug('CRUN: ' + iframe.src);
 		},
 
-		runPs1: function (command, hide, autoClose, ...extraParams) {
-			let internalArgs = [];
-
-			internalArgs.push('ps1');
-
-			internalArgs.push('run="' + command + '"');
-			internalArgs.push('hide=' + parseBoolean(hide));
-			internalArgs.push('autoClose=' + parseBoolean(autoClose));
-
-			for (let i = 0; i < extraParams.length; i++) {
-				let bool = typeof extraParams[i] === 'boolean';
-
-				internalArgs.push(
-					bool ? parseBoolean(extraParams[i]) : extraParams[i]
-				);
-			}
-
-			this.run(...internalArgs);
-		},
-
-		runCmd: function (command, hide = true, autoClose, ...extraParams) {
-			let internalArgs = [];
-
-			internalArgs.push('cmd');
-
-			internalArgs.push('run="' + command + '"');
-			internalArgs.push('hide=' + parseBoolean(hide));
-			internalArgs.push('autoClose=' + parseBoolean(autoClose));
-
-			for (let i = 0; i < extraParams.length; i++) {
-				let bool = typeof extraParams[i] === 'boolean';
-
-				internalArgs.push(
-					bool ? parseBoolean(extraParams[i]) : extraParams[i]
-				);
-			}
-
-			this.run(...internalArgs);
-		},
-
-		runProcess: function (filePath, args, hide, shell, ...extraParams) {
+		run: function (
+			command,
+			args,
+			hide,
+			shellExecute = false,
+			uac = false,
+			...extraParams
+		) {
 			let internalArgs = [];
 
 			internalArgs.push('run');
 
-			internalArgs.push('run="' + (filePath || '') + '"');
+			internalArgs.push(command);
+			internalArgs.push('args=' + (args || ''));
+			internalArgs.push('uac=' + parseToBool(uac));
+			internalArgs.push('shell=' + parseToBool(shellExecute));
+			internalArgs.push('hide=' + parseToBool(hide));
 
-			if (args) internalArgs.push('args="' + (args || '') + '"');
+			for (let i = 0; i < extraParams.length; i++) {
+				let bool = typeof extraParams[i] === 'boolean';
 
-			internalArgs.push('hide=' + parseBoolean(hide));
-			internalArgs.push('shell=' + parseBoolean(shell));
+				internalArgs.push(
+					bool ? parseToBool(extraParams[i]) : extraParams[i]
+				);
+			}
 
-			for (let i = 0; i < extraParams.length; i++)
-				internalArgs.push(extraParams[i]);
+			this.runCore(...internalArgs);
+		},
 
-			this.run(...internalArgs);
+		runPs1: function (
+			command,
+			autoClose = false,
+			hide = false,
+			...extraParams
+		) {
+			let internalArgs = [];
+
+			internalArgs.push('ps1');
+
+			internalArgs.push(command);
+			internalArgs.push('hide=' + parseToBool(hide));
+			internalArgs.push('autoClose=' + parseToBool(autoClose));
+
+			for (let i = 0; i < extraParams.length; i++) {
+				let bool = typeof extraParams[i] === 'boolean';
+
+				internalArgs.push(
+					bool ? parseToBool(extraParams[i]) : extraParams[i]
+				);
+			}
+
+			this.runCore(...internalArgs);
+		},
+
+		runCmd: function (
+			command,
+			autoClose = false,
+			hide = false,
+			...extraParams
+		) {
+			let internalArgs = [];
+
+			internalArgs.push('cmd');
+
+			internalArgs.push(command);
+			internalArgs.push('hide=' + parseToBool(hide));
+			internalArgs.push('autoClose=' + parseToBool(autoClose));
+
+			for (let i = 0; i < extraParams.length; i++) {
+				let bool = typeof extraParams[i] === 'boolean';
+
+				internalArgs.push(
+					bool ? parseToBool(extraParams[i]) : extraParams[i]
+				);
+			}
+
+			this.runCore(...internalArgs);
 		}
 	};
 
@@ -190,8 +238,18 @@ var CrunServer = null;
 	window.location.replace('https://www.google.com/intl/es_es/chrome/');
 }*/
 
-	function parseBoolean(bool) {
+	function parseToBool(bool) {
 		return bool ? '1' : '0';
+	}
+
+	function parseFromBool(str) {
+		return (
+			str === '1' ||
+			str === 'true' ||
+			str === 'yes' ||
+			str === 'y' ||
+			str === 'ok'
+		);
 	}
 
 	function cleanPath(path) {
@@ -206,16 +264,38 @@ var CrunServer = null;
 
 	const uri = 'http://127.0.0.1:51213';
 
+	const cfetch = async (data, options = {}) => {
+		await healthCheck();
+
+		if (!options.headers) options.headers = {};
+		options.headers.authorization = token;
+
+		const res = await fetch(`${uri}/${data}`, options);
+
+		const text = await res.text();
+
+		if (res.status > 300) {
+			throw new Error(text);
+		}
+
+		return text;
+	};
+
 	let healthInterval;
 
 	const healthCheck = async (timeout = 600, regularCheck = true) => {
 		try {
 			const response = await fetch(uri + '/health', {
-				signal: AbortSignal.timeout(timeout)
+				headers: {
+					authorization: token
+				},
+				signal: AbortSignal.timeout(timeout),
+				method: 'GET',
+				priority: 'high'
 			});
 
 			console.log(
-				'[CrunServer] Sending heartbeat: ' + (await response.text())
+				'[CrunServer] Sending heartbeat: ' + (await response.status)
 			);
 
 			return response.status;
@@ -223,7 +303,7 @@ var CrunServer = null;
 			console.error(error);
 
 			if (regularCheck) {
-				await new Promise((r) => setTimeout(r, 200));
+				await new Promise((r) => setTimeout(r, 100));
 
 				CrunServer.checkAndStart();
 			}
@@ -231,6 +311,77 @@ var CrunServer = null;
 			return 0;
 		}
 	};
+
+	document.addEventListener('click', function (event) {
+		if (
+			event.target.tagName === 'BUTTON' ||
+			event.type.toUpperCase() === 'BUTTON'
+		) {
+			handleButtonClick(event.target);
+		}
+	});
+
+	function handleButtonClick(button) {
+		const crunAttr = button.getAttribute('crun');
+
+		if (!crunAttr) return;
+
+		const sepIndex = crunAttr.indexOf(';');
+		if (sepIndex === -1) {
+			return;
+		}
+
+		const methodPathRaw = crunAttr.slice(0, sepIndex);
+		const argsPart = crunAttr.slice(sepIndex + 1);
+
+		const methodPath = methodPathRaw.trim();
+		const argsArray = parseArguments(argsPart);
+
+		// Retrieve the method function
+		const methodFunc = getMethodByPath(CrunServer, methodPath);
+
+		if (typeof methodFunc === 'function') {
+			methodFunc(...argsArray);
+		} else {
+			console.warn(`Method '${methodPath}' not found on CrunServer.`);
+		}
+	}
+
+	function getMethodByPath(obj, path) {
+		const parts = path.split('.');
+		let current = obj;
+
+		for (const part of parts) {
+			if (current && typeof current === 'object') {
+				const keys = Object.keys(current);
+				const matchedKey = keys.find(
+					(key) => key.toLowerCase() === part.toLowerCase()
+				);
+				if (matchedKey) {
+					current = current[matchedKey];
+				} else {
+					return undefined;
+				}
+			} else {
+				return undefined;
+			}
+		}
+
+		return current;
+	}
+
+	function parseArguments(argsString) {
+		return argsString.split(',').map((arg) => {
+			const trimmed = arg.trim();
+			const lowercased = trimmed.toLowerCase();
+
+			if (lowercased === '') return '';
+			if (lowercased === 'true') return true;
+			if (lowercased === 'false') return false;
+			if (!isNaN(trimmed)) return Number(trimmed);
+			return encodeURIComponent(trimmed);
+		});
+	}
 
 	let lastRun = 0; // Initialize last run timestamp
 
@@ -244,8 +395,8 @@ var CrunServer = null;
 
 			const now = Date.now();
 
-			if (!healthy && now - lastRun >= 10000) {
-				CrunHelper.run('server');
+			if (!healthy && now - lastRun >= 10 * 1000) {
+				CrunHelper.runCore('server');
 				lastRun = now; // Update last run time
 				setTimeout(healthCheck, 1 * 1000);
 			}
@@ -258,29 +409,68 @@ var CrunServer = null;
 		},
 
 		stop: function () {
-			CrunHelper.run('stop');
+			CrunHelper.runCore('stop');
 			clearInterval(healthInterval);
 			healthInterval = null;
 		},
 
-		runAsync: async function (file, args, hide, admin, shell) {
-			return await this.run(file, args, hide, admin, shell, true);
+		runAsync: async function (
+			file,
+			args = '',
+			hide = false,
+			shell = true,
+			uac = false
+		) {
+			return await CrunServer.run(file, args, hide, shell, uac);
 		},
 
-		run: async function (file, args, hide, admin, shell = true, async) {
+		run: async function (
+			file,
+			args = '',
+			hide = false,
+			shell = true,
+			uac = false,
+			async = false
+		) {
+			if (uac && !shell) {
+				throw new Error(
+					'Shell must be enabled when elevating uac privileges.'
+				);
+			}
+
 			return await cfetch(
-				'run?file=' +
-					cleanPath(file) +
+				'run?path=' +
+					encodeURIComponent(cleanPath(file)) +
 					'&args=' +
-					args +
+					encodeURIComponent(args) +
 					'&hide=' +
-					parseBoolean(hide) +
-					'&admin=' +
-					parseBoolean(admin) +
+					parseToBool(hide) +
+					'&uac=' +
+					parseToBool(uac) +
 					'&shell=' +
-					parseBoolean(shell == null ? true : shell) +
+					parseToBool(shell == null ? true : shell) +
 					'&async=' +
-					parseBoolean(async)
+					parseToBool(async)
+			);
+		},
+
+		runPowershell: async function (
+			command,
+			autoclose = true,
+			hide = false,
+			uac = false,
+			shell = true
+		) {
+			return await CrunServer.run(
+				'%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',
+				'-NoLogo -NonInteractive -NoProfile -ExecutionPolicy Bypass' +
+					(!autoclose ? ' -NoExit' : null) +
+					' -Command "& "' +
+					command +
+					'""',
+				hide,
+				shell,
+				uac
 			);
 		},
 
@@ -288,30 +478,40 @@ var CrunServer = null;
 			write: async function (path, content) {
 				if (!path) path = '.';
 
-				const res = await cfetch('write?path=' + path, {
-					method: 'POST',
-					body: content
-				});
+				const res = await cfetch(
+					'write?path=' + encodeURIComponent(path),
+					{
+						method: 'POST',
+						body: content
+					}
+				);
 
 				let out = res.trim().toLocaleLowerCase();
 
-				return out === '1' || out === 'true';
+				return parseFromBool(out);
 			},
 
 			exist: async function (path) {
 				if (!path) path = '.';
 
-				const res = await cfetch('exist?path=' + path);
+				const res = await cfetch(
+					'exist?path=' + encodeURIComponent(path)
+				);
 
 				let out = res.trim().toLocaleLowerCase();
 
-				return out === '1' || out === 'true';
+				return parseFromBool(out);
 			},
 
-			list: async function (path) {
+			list: async function (path, pattern = '') {
 				if (!path) path = '.';
 
-				const res = await cfetch('list?path=' + path);
+				const res = await cfetch(
+					'list?path=' +
+						encodeURIComponent(path) +
+						'&pattern=' +
+						pattern
+				);
 
 				let obj = [];
 
@@ -323,29 +523,60 @@ var CrunServer = null;
 			},
 
 			read: async function (path) {
-				const res = await cfetch('read?path=' + path + '&base64=true');
+				const res = await cfetch(
+					'read?path=' + encodeURIComponent(path) + '&base64=true'
+				);
 
 				return atob(res);
 			},
 
+			move: async function (oldPath, newPath) {
+				const res = await cfetch(
+					'move?path=' +
+						encodeURIComponent(oldPath) +
+						'&new=' +
+						encodeURIComponent(newPath)
+				);
+
+				return atob(res);
+			},
+
+			download: async function (url, path) {
+				return await cfetch(
+					'download?url=' +
+						encodeURIComponent(url) +
+						'&path=' +
+						encodeURIComponent(path)
+				);
+			},
+
 			delete: async function (path) {
-				return await cfetch('delete?path=' + path);
+				return await cfetch('delete?path=' + encodeURIComponent(path));
 			},
 
 			attributes: async function (path) {
-				return await cfetch('attributes?path=' + path);
+				return await cfetch(
+					'attributes?path=' + encodeURIComponent(path)
+				);
 			}
 		},
 
 		directory: {
 			delete: async function (path, recursive = true) {
 				return await cfetch(
-					'delete?path=' + path + '&recursive=' + recursive
+					'delete?path=' +
+						encodeURIComponent(path) +
+						'&recursive=' +
+						recursive
 				);
 			},
 
-			list: async function (path) {
+			list: async function (path, pattern) {
 				return await CrunServer.files.list(path);
+			},
+
+			exist: async function (path) {
+				return await CrunServer.files.exist(path.trim('/') + '/');
 			},
 
 			getCurrentDirectory: async function () {
@@ -353,28 +584,189 @@ var CrunServer = null;
 			},
 
 			setCurrentDirectory: async function (path) {
-				return await cfetch('sgd?path=' + path);
+				return (
+					(await cfetch('scd?path=' + encodeURIComponent(path))) ===
+					''
+				);
 			}
 		},
 
-		processList: async function () {
-			const res = await cfetch('plist');
+		services: {
+			start: async function (name, ...args) {
+				return await cfetch(
+					'service/start?path=' +
+						name +
+						'&args=' +
+						args
+							.map(function (a) {
+								return encodeURIComponent(a);
+							})
+							.join('|')
+				);
+			},
+			stop: async function (name) {
+				return await cfetch('service/stop?path=' + name);
+			},
+
+			restart: async function (name, ...args) {
+				return await cfetch(
+					'service/restart?path=' +
+						name +
+						'&args=' +
+						args
+							.map(function (a) {
+								return encodeURIComponent(a);
+							})
+							.join('|')
+				);
+			},
+
+			info: async function (name) {
+				const info = (await cfetch('service/info?path=' + name)).split(
+					'|'
+				);
+
+				return {
+					name: info[0],
+					type: info[1],
+					start: info[2],
+					status: info[3]
+				};
+			},
+
+			list: async function () {
+				let list = [];
+
+				(await cfetch('service/list'))
+					.split('\n')
+					.forEach((element) => {
+						const info = element.split('|');
+
+						list.push({
+							name: info[0],
+							type: info[1],
+							start: info[2],
+							status: info[3]
+						});
+					});
+
+				return list;
+			}
+		},
+
+		registry: {
+			get: async function (path, key) {
+				return await cfetch(
+					'registry/get?path=' +
+						encodeURIComponent(path) +
+						'&key=' +
+						key
+				);
+			},
+
+			set: async function (path, key, value, kind) {
+				return await cfetch(
+					'registry/set?path=' +
+						path +
+						'&key=' +
+						key +
+						'&value=' +
+						encodeURIComponent(value) +
+						'&kind=' +
+						kind
+				);
+			},
+
+			delete: async function (path, key) {
+				return await cfetch(
+					'registry/delete?path=' +
+						encodeURIComponent(path) +
+						'&key=' +
+						key
+				);
+			},
+
+			list: async function (path) {
+				return await cfetch(
+					'registry/list?path=' + encodeURIComponent(path)
+				);
+			}
+		},
+
+		managementSearch: async function (path) {
+			const res = await cfetch(
+				'management/query?path=' + encodeURIComponent(path)
+			);
 
 			let obj = {};
 			res.split('\n').forEach((element) => {
-				let split = element.split(':');
+				let split = element.split('|');
 
 				obj[split[0]] = Number(split[1]);
 			});
 			return obj;
 		},
 
+		dllInvoke: async function (dll, method, returnType, params) {
+			const res = await cfetch(
+				'dllinvoke?dll=' +
+					encodeURIComponent(dll) +
+					'&method=' +
+					encodeURIComponent(method) +
+					'&params=' +
+					encodeURIComponent(params) +
+					'&returnType=' +
+					returnType ?? 'void'
+			);
+
+			return res;
+		},
+
+		processList: async function () {
+			let obj = {};
+
+			(await cfetch('plist')).split('\n').forEach((element) => {
+				let split = element.split('|');
+
+				obj[split[0]] = Number(split[1]);
+			});
+
+			return obj;
+		},
+
+		getEnv: async function () {
+			let response = (await cfetch('env')).split('\n');
+			let env = {};
+
+			for (let line of response) {
+				if (!line.trim() || line.trim().startsWith('#')) continue;
+
+				let index = line.indexOf('=');
+				if (index === -1) continue;
+
+				let key = line.slice(0, index).trim();
+				let value = line.slice(index + 1).trim();
+				env[key] = value;
+			}
+
+			return env;
+		},
+
 		killProcess: async function (...processNames) {
-			return await cfetch('pkill?name=' + processNames.join('|'));
+			return Number(await cfetch('pkill?name=' + processNames.join('|')));
+		},
+
+		killProcessById: async function (pid) {
+			return Number(await cfetch('pkill?pid=' + pid));
 		},
 
 		extractZip: async function (url, path) {
-			return await cfetch('extract?url=' + url + '&path=' + path);
+			return await cfetch(
+				'unzip?url=' +
+					encodeURIComponent(url) +
+					'&path=' +
+					encodeURIComponent(path)
+			);
 		}
 	};
 })();
