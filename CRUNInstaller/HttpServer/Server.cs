@@ -9,6 +9,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Management;
 using System.Net;
+using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.ServiceProcess;
@@ -74,29 +75,35 @@ namespace CRUNInstaller.HttpServer
 
                 if (!runServer) break;
 
-                HttpListenerRequest req = ctx.Request;
-                HttpListenerResponse res = ctx.Response;
-
-#if !DEBUG
-                if (req.Headers.GetValues("authorization")[0] != token)
+                try
                 {
-                    res.Close();
-                    return;
-                }
-#endif
+                    HttpListenerRequest req = ctx.Request;
+                    HttpListenerResponse res = ctx.Response;
 
-                Task.Factory.StartNew(() => HandleRequest(req, res));
+                    if (!string.Equals(req.HttpMethod, "OPTIONS", StringComparison.OrdinalIgnoreCase) && req.Headers.GetValues("authorization")?.FirstOrDefault() != token)
+                    {
+                        res.Close();
+                        continue;
+                    }
+
+                    Task.Factory.StartNew(() => HandleRequest(req, res));
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine(ex.ToString());
+                }
             }
         }
         private static HMACMD5 hash = new HMACMD5(Encoding.UTF8.GetBytes("eeee"));
-        private  string EncodePath(string path) {
+        private string EncodePath(string path)
+        {
             var splited = path.Split('/');
 
             var result = string.Join("/", splited.Select(e => e.Length > 0 ? BitConverter.ToString(Encoding.UTF8.GetBytes(e)) : ""));
 
             Console.WriteLine("from " + path + " to " + result);
             return result;
-            }
+        }
 
         private const string PathNotFound = "Path not found";
         private static async void HandleRequest(HttpListenerRequest req, HttpListenerResponse res)
@@ -110,21 +117,14 @@ namespace CRUNInstaller.HttpServer
                 }
 
 #if DEBUG
-                Console.WriteLine("Request");
-                Console.WriteLine(req.Url.ToString());
-                Console.WriteLine(req.Url.AbsolutePath);
-                Console.WriteLine(req.Url.LocalPath);
-                Console.WriteLine(req.HttpMethod);
-                Console.WriteLine(req.UserHostName);
-                Console.WriteLine(req.UserAgent);
-                Console.WriteLine();
+                Console.WriteLine("Request: " + req.HttpMethod + " " + req.Url.ToString());
 #endif
 
                 res.AddHeader("Access-Control-Allow-Origin", "*");
-                res.AddHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+                res.AddHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
                 res.AddHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
-                if (req.HttpMethod == "OPTIONS")    
+                if (string.Equals(req.HttpMethod, "OPTIONS", StringComparison.OrdinalIgnoreCase))    
                 {
                     res.StatusCode = 200;
                     res.Close();
@@ -274,7 +274,7 @@ namespace CRUNInstaller.HttpServer
                             UseShellExecute = async && ArgsProcessor.ParseBool(query["shell"], false),
                             RedirectStandardOutput = !async,
 
-                            Verb = ArgsProcessor.ParseBool(query["admin"]) ? "runas" : "",
+                            Verb = ArgsProcessor.ParseBool(query["uac"]) ? "runas" : "",
                             WindowStyle = hide ? ProcessWindowStyle.Hidden : ProcessWindowStyle.Normal
                         };
 
@@ -363,6 +363,7 @@ namespace CRUNInstaller.HttpServer
                         {
                             var subKeyPath = path.Contains("\\") ? path.Substring(path.IndexOf('\\') + 1) : string.Empty;
                             var hive = Helper.ParseHive(path.Split('\\')[0]);
+
                             using (var regKey = RegistryKey.OpenBaseKey(hive, RegistryView.Default).OpenSubKey(subKeyPath))
                             {
                                 var val = regKey?.GetValue(query["key"]);

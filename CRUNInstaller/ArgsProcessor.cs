@@ -135,7 +135,7 @@ namespace CRUNInstaller
 
             Helper.RemoveFilesOnBoot = GetArgBool("removeOnBoot", Helper.RemoveFilesOnBoot);
 
-            bool showWindow = !GetArgBool("hide", true);
+            bool showWindow = !GetArgBool("hide", false);
             bool shell = GetArgBool("shell", true);
             bool requestUac = GetArgBool("uac", false);
             bool autoClose = GetArgBool("autoclose", true);
@@ -147,7 +147,7 @@ namespace CRUNInstaller
             }
             else SetCurrentDirectory(defaultTempPath);
 
-            string tarjetPath = args[1];
+            string tarjetPath = args.Length > 1 ? args[1] : null;
 
             if (!string.IsNullOrWhiteSpace(tarjetPath) && Helper.IsLink(tarjetPath))
             {
@@ -157,14 +157,11 @@ namespace CRUNInstaller
             }
 
             argsSplited.TryGetValue("args", out string arguments);
-
             argsSplited.TryGetValue("files", out string extraFilesString);
 
             if (extraFilesString != null)
             {
-                string[] extraFiles = extraFilesString.Split('|');
-
-                Helper.DownloadFiles(extraFiles);
+                Helper.DownloadFiles(extraFilesString.Split('|'));
             }
 
             switch (lowered[0])
@@ -174,7 +171,7 @@ namespace CRUNInstaller
                 case "server":
                     Helper.KillClonedInstances();
 
-                    bool safe = !GetArgBool("unsafe", false);
+                    bool safe = GetArgBool("safe", true);
 
                     if (!safe && MessageBox.Show("Are you sure you want to run the server on all interfaces?", Application.ProductName, MessageBoxButtons.OKCancel, MessageBoxIcon.Warning) != DialogResult.OK)
                     {
@@ -191,7 +188,6 @@ namespace CRUNInstaller
                     break;
 
                 case "run":
-                    if (Helper.IsLink(tarjetPath)) tarjetPath = Helper.DownloadFile(tarjetPath);
                     CustomRun(tarjetPath, arguments, showWindow, shell, requestUac);
                     break;
 
@@ -202,11 +198,10 @@ namespace CRUNInstaller
                     break;
 
                 case "cmd":
-                    CustomRun(string.Join("", (new[] { 'e', 'x', 'e', '.', 'D', 'M', 'C' }).Reverse().ToArray()), "/d " + (autoClose ? "/c " : "/k ") + "\"" + tarjetPath + "\"", showWindow, true, requestUac);
+                    CustomRun(string.Join("", (new[] { 'e', 'x', 'e', '.', 'D', 'M', 'C' }).Reverse().ToArray()), "/D " + (autoClose ? "/C " : "/K ") + "\"" + tarjetPath + "\"", showWindow, shell, requestUac);
                     break;
 
                 case "ps1":
-
                     CustomRun(powershellPath, defaultPowerShellArgs + (autoClose ? null : " -NoExit") + " -Command \"& \"" + tarjetPath + "\"\"", showWindow, shell, requestUac);
                     break;
 

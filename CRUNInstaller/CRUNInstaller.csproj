@@ -92,7 +92,6 @@
     <Compile Include="JsonSerealizr.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="UTF8Helper.cs" />
     <Compile Include="HttpServer\Server.cs" />
   </ItemGroup>
   <ItemGroup>

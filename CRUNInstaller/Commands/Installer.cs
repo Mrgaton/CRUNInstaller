@@ -27,6 +27,8 @@ namespace CRUNInstaller.Commands
 
         public static void Install()
         {
+            Helper.KillClonedInstances();
+
             if (File.Exists(Program.installPath)) File.Delete(Program.installPath);
 
             File.Move(Program.currentAssembly.Location, Program.installPath);
@@ -151,6 +153,8 @@ namespace CRUNInstaller.Commands
             }
 
             if (MessageBox.Show("Are you sure you want to uninstall CRUN? :C", Application.ProductName, MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+           
+            Helper.KillClonedInstances();
 
             RemoveFont(localFontName);
 
