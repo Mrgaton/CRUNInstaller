@@ -38,7 +38,7 @@ var CrunServer = null;
 		);
 	};
 
-	const targetedVersions = ['1.7.0.0'];
+	const targetedVersions = ['1.7.1.0'];
 
 	const protocolPath = 'crun://';
 
