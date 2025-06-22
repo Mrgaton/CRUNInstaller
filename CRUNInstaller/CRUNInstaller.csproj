@@ -89,7 +89,6 @@
     <Compile Include="Helper.cs" />
     <Compile Include="HttpServer\DynamicInvoker.cs" />
     <Compile Include="HttpServer\HttpExtensions.cs" />
-    <Compile Include="JsonSerealizr.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="HttpServer\Server.cs" />

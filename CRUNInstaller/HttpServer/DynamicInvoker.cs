@@ -131,12 +131,14 @@ namespace CRUNInstaller.HttpServer
 
                 // 2. Load Library and Get Function Pointer
                 IntPtr hLib = LoadLibrary(dllName);
+
                 if (hLib == IntPtr.Zero)
                     throw new DllNotFoundException($"Failed to load DLL '{dllName}'. Error code: {Marshal.GetLastWin32Error()}");
 
                 try // Inner try ensures FreeLibrary runs even if GetProcAddress fails
                 {
                     IntPtr pfn = GetProcAddress(hLib, methodName);
+
                     if (pfn == IntPtr.Zero)
                         throw new EntryPointNotFoundException($"Function '{methodName}' not found in '{dllName}'. Error code: {Marshal.GetLastWin32Error()}");
 
@@ -164,6 +166,7 @@ namespace CRUNInstaller.HttpServer
                         il.Emit(OpCodes.Ldc_I8, pfn.ToInt64());
                     else
                         il.Emit(OpCodes.Ldc_I4, pfn.ToInt32());
+
                     il.Emit(OpCodes.Conv_I); // Convert to native int (IntPtr)
 
                     // Call the native function

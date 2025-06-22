@@ -58,7 +58,12 @@ namespace CRUNInstaller
 
                 string value = argument.Substring(index + 1);
 
-                if (index != -1) argsSplited.Add(argument.Substring(0, index).ToLower(), (value[0] == '\"' && value[value.Length - 1] == '\"' ? value.Substring(1, value.Length - 2) : value));
+                if (index != -1)
+                {
+                    string key = argument.Substring(0, index).ToLower();
+
+                    argsSplited.Add(key, !string.IsNullOrEmpty(value) && value[0] == '\"' && value[value.Length - 1] == '\"' ? value.Substring(1, value.Length - 2) : value);
+                }
             }
 
             if (urlCalled)

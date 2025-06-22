@@ -40,8 +40,6 @@ namespace CRUNInstaller
         [STAThread]
         private static void Main(string[] args)
         {
-            //args = ["crun://run/cmd.exe/args%3D%2Fk%20echo%20gau/uac%3D0/shell%3D0/hide%3D0/tarjetVersion%3D%221.7.0.0%22/cname%3Dgato.ovh/ctoken%3Djh01CFlJ0M777B1jgXQLaPTmxtkCPL9f"];
-
             if (!Debugger.IsAttached)
             {
                 AppDomain.CurrentDomain.UnhandledException += (object sender, UnhandledExceptionEventArgs ars) =>
