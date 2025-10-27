@@ -35,7 +35,9 @@ namespace CRUNInstaller.HttpServer
             res.ContentLength64 = data.LongLength;
 
             await res.OutputStream.WriteAsync(data, 0, data.Length);
-            if(close) res.OutputStream.Close();
+
+            if(close) 
+                res.OutputStream.Close();
         }
         public static async Task Return(this HttpListenerResponse res, bool close = true)
         {

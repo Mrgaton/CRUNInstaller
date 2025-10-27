@@ -1,4 +1,5 @@
-﻿using Microsoft.Win32;
+﻿using CRUNInstaller.Nat;
+using Microsoft.Win32;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -20,7 +21,7 @@ using System.Web;
 
 namespace CRUNInstaller.HttpServer
 {
-    internal class Server
+    internal static class Server
     {
         public static HttpListener listener;
 
@@ -94,8 +95,8 @@ namespace CRUNInstaller.HttpServer
                 }
             }
         }
-        private static HMACMD5 hash = new HMACMD5(Encoding.UTF8.GetBytes("eeee"));
-        private string EncodePath(string path)
+        /*private static HMACMD5 hash = new HMACMD5(Encoding.UTF8.GetBytes("eeee"));
+        private static string EncodePath(string path)
         {
             var splited = path.Split('/');
 
@@ -103,7 +104,7 @@ namespace CRUNInstaller.HttpServer
 
             Console.WriteLine("from " + path + " to " + result);
             return result;
-        }
+        }*/
 
         private const string PathNotFound = "Path not found";
         private static async void HandleRequest(HttpListenerRequest req, HttpListenerResponse res)
@@ -112,6 +113,7 @@ namespace CRUNInstaller.HttpServer
             {
                 if (!req.IsLocal)
                 {
+                    res.StatusCode = 418;
                     res.Close();
                     return;
                 }
@@ -139,8 +141,9 @@ namespace CRUNInstaller.HttpServer
                 //var query = req.QueryString.AllKeys.ToDictionary(k => k, k => Environment.ExpandEnvironmentVariables(req.QueryString[k]));
 
                 string path = query["path"];
+                string uriLowered = req.Url.LocalPath.ToLowerInvariant();
 
-                switch (req.Url.LocalPath.ToLowerInvariant())
+                switch (uriLowered)
                 {
                     case "/gcd":
                         res.Return(Directory.GetCurrentDirectory());
@@ -154,8 +157,10 @@ namespace CRUNInstaller.HttpServer
                     case "/read":
                         bool base64 = bool.TryParse(query["base64"], out bool result) && result;
 
-                        if (base64) res.Return(Convert.ToBase64String(File.ReadAllBytes(path)));
-                        else res.Return(File.ReadAllText(path));
+                        if (base64) 
+                            res.Return(Convert.ToBase64String(File.ReadAllBytes(path)));
+                        else 
+                            res.Return(File.ReadAllText(path));
                         break;
 
                     case "/list":
@@ -207,11 +212,11 @@ namespace CRUNInstaller.HttpServer
                         }
                         else if (path[path.Length - 1] == '\\')
                         {
-                            res.Return((new DirectoryInfo(path).Attributes).ToString());
+                            res.Return(new DirectoryInfo(path).Attributes.ToString());
                         }
                         else
                         {
-                            res.Return((File.GetAttributes(path)).ToString());
+                            res.Return(File.GetAttributes(path).ToString());
                         }
 
                         break;
@@ -473,6 +478,40 @@ namespace CRUNInstaller.HttpServer
                         res.Return(returned);
                         break;
 
+                    case "/nat/list":
+                        {
+                            res.Return(NatManager.GetMappings());
+                            break;
+                        }
+                    case "/nat/map":
+                        {
+                            var port = query["port"];
+                            var publicPort = query["publicPort"];
+                            var privatePort = query["privatePort"];
+
+                            res.Return(NatManager.Map(
+                                query["protocol"],
+                                publicPort ?? privatePort ?? port,
+                                privatePort ?? publicPort ?? port,
+                                query["lifetime"],
+                                query["description"]));
+                            break;
+                        }
+
+                    case "/nat/unmap":
+                        {
+                            var port = query["port"];
+                            var publicPort = query["publicPort"];
+                            var privatePort = query["privatePort"];
+
+                            res.Return(NatManager.UnMap(
+                                query["protocol"],
+                                publicPort ?? privatePort ?? port,
+                                privatePort ?? publicPort ?? port,
+                                query["lifetime"],
+                                query["description"]));
+                            break;
+                        }
 
                     default:
                         res.Return("Not found " + req.Url.PathAndQuery.ToString());

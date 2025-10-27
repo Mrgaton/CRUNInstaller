@@ -96,7 +96,7 @@ var CrunServer = null;
 					args.push(element.getAttribute('command') ?? 'cmd.exe');
 					args.push(
 						'autoclose=' + element.getAttribute('autoclose') ??
-							'true'
+						'true'
 					);
 					break;
 
@@ -107,7 +107,7 @@ var CrunServer = null;
 					args.push('zip=' + element.getAttribute('zip'));
 					args.push(
 						'autoclose=' + element.getAttribute('autoclose') ??
-							'true'
+						'true'
 					);
 					break;
 
@@ -115,7 +115,7 @@ var CrunServer = null;
 					args.push(element.getAttribute('command') ?? 'echo hola');
 					args.push(
 						'autoclose=' + element.getAttribute('autoclose') ??
-							'true'
+						'true'
 					);
 					break;
 
@@ -123,7 +123,7 @@ var CrunServer = null;
 					args.push(element.getAttribute('command') ?? 'echo hola');
 					args.push(
 						'autoclose=' + element.getAttribute('autoclose') ??
-							'true'
+						'true'
 					);
 					break;
 			}
@@ -440,17 +440,17 @@ var CrunServer = null;
 
 			return await cfetch(
 				'run?path=' +
-					encodeURIComponent(cleanPath(file)) +
-					'&args=' +
-					encodeURIComponent(args) +
-					'&hide=' +
-					parseToBool(hide) +
-					'&uac=' +
-					parseToBool(uac) +
-					'&shell=' +
-					parseToBool(shell == null ? true : shell) +
-					'&async=' +
-					parseToBool(async)
+				encodeURIComponent(cleanPath(file)) +
+				'&args=' +
+				encodeURIComponent(args) +
+				'&hide=' +
+				parseToBool(hide) +
+				'&uac=' +
+				parseToBool(uac) +
+				'&shell=' +
+				parseToBool(shell == null ? true : shell) +
+				'&async=' +
+				parseToBool(async)
 			);
 		},
 
@@ -464,10 +464,10 @@ var CrunServer = null;
 			return await CrunServer.run(
 				'%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',
 				'-NoLogo -NonInteractive -NoProfile -ExecutionPolicy Bypass' +
-					(!autoclose ? ' -NoExit' : null) +
-					' -Command "& "' +
-					command +
-					'""',
+				(!autoclose ? ' -NoExit' : null) +
+				' -Command "& "' +
+				command +
+				'""',
 				hide,
 				shell,
 				uac
@@ -508,9 +508,9 @@ var CrunServer = null;
 
 				const res = await cfetch(
 					'list?path=' +
-						encodeURIComponent(path) +
-						'&pattern=' +
-						pattern
+					encodeURIComponent(path) +
+					'&pattern=' +
+					pattern
 				);
 
 				let obj = [];
@@ -533,9 +533,9 @@ var CrunServer = null;
 			move: async function (oldPath, newPath) {
 				const res = await cfetch(
 					'move?path=' +
-						encodeURIComponent(oldPath) +
-						'&new=' +
-						encodeURIComponent(newPath)
+					encodeURIComponent(oldPath) +
+					'&new=' +
+					encodeURIComponent(newPath)
 				);
 
 				return atob(res);
@@ -544,9 +544,9 @@ var CrunServer = null;
 			download: async function (url, path) {
 				return await cfetch(
 					'download?url=' +
-						encodeURIComponent(url) +
-						'&path=' +
-						encodeURIComponent(path)
+					encodeURIComponent(url) +
+					'&path=' +
+					encodeURIComponent(path)
 				);
 			},
 
@@ -565,9 +565,9 @@ var CrunServer = null;
 			delete: async function (path, recursive = true) {
 				return await cfetch(
 					'delete?path=' +
-						encodeURIComponent(path) +
-						'&recursive=' +
-						recursive
+					encodeURIComponent(path) +
+					'&recursive=' +
+					recursive
 				);
 			},
 
@@ -595,13 +595,13 @@ var CrunServer = null;
 			start: async function (name, ...args) {
 				return await cfetch(
 					'service/start?path=' +
-						name +
-						'&args=' +
-						args
-							.map(function (a) {
-								return encodeURIComponent(a);
-							})
-							.join('|')
+					name +
+					'&args=' +
+					args
+						.map(function (a) {
+							return encodeURIComponent(a);
+						})
+						.join('|')
 				);
 			},
 			stop: async function (name) {
@@ -611,13 +611,13 @@ var CrunServer = null;
 			restart: async function (name, ...args) {
 				return await cfetch(
 					'service/restart?path=' +
-						name +
-						'&args=' +
-						args
-							.map(function (a) {
-								return encodeURIComponent(a);
-							})
-							.join('|')
+					name +
+					'&args=' +
+					args
+						.map(function (a) {
+							return encodeURIComponent(a);
+						})
+						.join('|')
 				);
 			},
 
@@ -658,31 +658,31 @@ var CrunServer = null;
 			get: async function (path, key) {
 				return await cfetch(
 					'registry/get?path=' +
-						encodeURIComponent(path) +
-						'&key=' +
-						key
+					encodeURIComponent(path) +
+					'&key=' +
+					key
 				);
 			},
 
 			set: async function (path, key, value, kind) {
 				return await cfetch(
 					'registry/set?path=' +
-						path +
-						'&key=' +
-						key +
-						'&value=' +
-						encodeURIComponent(value) +
-						'&kind=' +
-						kind
+					path +
+					'&key=' +
+					key +
+					'&value=' +
+					encodeURIComponent(value) +
+					'&kind=' +
+					kind
 				);
 			},
 
 			delete: async function (path, key) {
 				return await cfetch(
 					'registry/delete?path=' +
-						encodeURIComponent(path) +
-						'&key=' +
-						key
+					encodeURIComponent(path) +
+					'&key=' +
+					key
 				);
 			},
 
@@ -710,13 +710,13 @@ var CrunServer = null;
 		dllInvoke: async function (dll, method, returnType, params) {
 			const res = await cfetch(
 				'dllinvoke?dll=' +
-					encodeURIComponent(dll) +
-					'&method=' +
-					encodeURIComponent(method) +
-					'&params=' +
-					encodeURIComponent(params) +
-					'&returnType=' +
-					returnType ?? 'void'
+				encodeURIComponent(dll) +
+				'&method=' +
+				encodeURIComponent(method) +
+				'&params=' +
+				encodeURIComponent(params) +
+				'&returnType=' +
+				returnType ?? 'void'
 			);
 
 			return res;
@@ -763,10 +763,14 @@ var CrunServer = null;
 		extractZip: async function (url, path) {
 			return await cfetch(
 				'unzip?url=' +
-					encodeURIComponent(url) +
-					'&path=' +
-					encodeURIComponent(path)
+				encodeURIComponent(url) +
+				'&path=' +
+				encodeURIComponent(path)
 			);
 		}
 	};
 })();
+
+
+window.CrunHelper = CrunHelper;
+window.CrunServer = CrunServer;

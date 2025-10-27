@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace CRUNInstaller.HttpServer
 {
-    internal class DynamicInvoker
+    internal static class DynamicInvoker
     {
         //Gemini AI generated class :c
 

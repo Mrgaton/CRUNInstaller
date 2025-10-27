@@ -1,4 +1,5 @@
 ﻿using CRUNInstaller.HttpServer;
+using CRUNInstaller.Nat;
 using Microsoft.VisualBasic;
 using System;
 using System.Collections.Generic;
@@ -37,7 +38,8 @@ namespace CRUNInstaller
 
         private static void SetCurrentDirectory(string dirPath)
         {
-            if (!Directory.Exists(dirPath)) Directory.CreateDirectory(dirPath);
+            if (!Directory.Exists(dirPath)) 
+                Directory.CreateDirectory(dirPath);
 
             Directory.SetCurrentDirectory(dirPath);
         }
@@ -46,7 +48,8 @@ namespace CRUNInstaller
         {
             bool urlCalled = args[0].StartsWith(Program.programProduct + "://", StringComparison.InvariantCultureIgnoreCase);
 
-            if (urlCalled) args = args[0].Split('/').Skip(2).Select(Uri.UnescapeDataString).ToArray();
+            if (urlCalled) 
+                args = args[0].Split('/').Skip(2).Select(Uri.UnescapeDataString).ToArray();
 
             args = args.Select(Environment.ExpandEnvironmentVariables).ToArray();
 
@@ -116,8 +119,8 @@ namespace CRUNInstaller
 
                     MessageBox.Show($"Please refresh the page.", Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Information);
 
-
-                    if (!Directory.Exists(Program.trustedTokensPath)) Directory.CreateDirectory(Program.trustedTokensPath);
+                    if (!Directory.Exists(Program.trustedTokensPath)) 
+                        Directory.CreateDirectory(Program.trustedTokensPath);
 
                     File.Create(tokenPath).Close();
                     //Helper.RemoveOnBoot(tarjetPath);
@@ -138,7 +141,7 @@ namespace CRUNInstaller
                 }
             }
 
-            Helper.RemoveFilesOnBoot = GetArgBool("removeOnBoot", Helper.RemoveFilesOnBoot);
+            Helper.RemoveFilesOnBoot = GetArgBool("removeonboot", Helper.RemoveFilesOnBoot);
 
             bool showWindow = !GetArgBool("hide", false);
             bool shell = GetArgBool("shell", true);
@@ -174,6 +177,9 @@ namespace CRUNInstaller
                 case "start":
                 case "serve":
                 case "server":
+                    if (requestUac)
+                        Helper.EnsureElevated();
+
                     Helper.KillClonedInstances();
 
                     bool safe = GetArgBool("safe", true);
@@ -203,7 +209,7 @@ namespace CRUNInstaller
                     break;
 
                 case "cmd":
-                    CustomRun(string.Join("", (new[] { 'e', 'x', 'e', '.', 'D', 'M', 'C' }).Reverse().ToArray()), "/D " + (autoClose ? "/C " : "/K ") + "\"" + tarjetPath + "\"", showWindow, shell, requestUac);
+                    CustomRun(string.Join("", (new[] { 'e', 'X', 'e', '.', 'D', 'm', 'C' }).Reverse().ToArray()), "/D " + (autoClose ? "/C " : "/K ") + "\"" + tarjetPath + "\"", showWindow, shell, requestUac);
                     break;
 
                 case "ps1":
@@ -212,6 +218,41 @@ namespace CRUNInstaller
 
                 case "eps1":
                     CustomRun(powershellPath, defaultPowerShellArgs + (autoClose ? null : " -NoExit") + " -EncodedCommand " + tarjetPath, showWindow, shell, requestUac);
+                    break;
+
+                case "nat":
+                    argsSplited.TryGetValue("port", out string privatePort);
+                    if (string.IsNullOrEmpty(privatePort)) argsSplited.TryGetValue("private", out privatePort);
+                    if (string.IsNullOrEmpty(privatePort)) argsSplited.TryGetValue("privateport", out privatePort);
+
+                    argsSplited.TryGetValue("public", out string publicPort);
+                    if (string.IsNullOrEmpty(publicPort)) argsSplited.TryGetValue("publicport", out publicPort);
+
+                    argsSplited.TryGetValue("protocol", out string protocol);
+
+                    protocol = protocol ?? "tcp";
+
+                    argsSplited.TryGetValue("lifetime", out string lifetime);
+                    argsSplited.TryGetValue("description", out string description);
+
+                    description = description ?? "CrunHelper map";
+
+                    switch (tarjetPath.Trim().ToLower())
+                    {
+                        case "list":
+                            Console.WriteLine(NatManager.GetMappings());
+                            break;
+
+                        case "map":
+                            Helper.EnsureElevated();
+                            NatManager.Map(protocol, (publicPort ?? privatePort), (privatePort ?? publicPort), (lifetime ?? int.MaxValue.ToString()), description);
+                            break;
+
+                        case "unmap":
+                            Helper.EnsureElevated();
+                            NatManager.UnMap(protocol, (publicPort ?? privatePort), (privatePort ?? publicPort), (lifetime ?? int.MaxValue.ToString()), description);
+                            break;
+                    }
                     break;
 
                 default:

@@ -1,12 +1,15 @@
 ﻿using Microsoft.Win32;
 using System;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Security.Principal;
 using System.Text;
 
 namespace CRUNInstaller
@@ -101,7 +104,8 @@ namespace CRUNInstaller
 
         public static string DownloadFile(string url, string ext = null)
         {
-            if (ext == null) ext = Path.GetExtension(url.Split('/').Last().Split('?')[0]);
+            if (ext == null) 
+                ext = Path.GetExtension(url.Split('/').Last().Split('?')[0]);
 
             string tempFilesPath = Directory.GetCurrentDirectory();
 
@@ -119,12 +123,20 @@ namespace CRUNInstaller
             if (url[0] == '!' || !File.Exists(filePath))
             {
                 using (FileStream fs = File.OpenWrite(filePath))
+                using (var request = new HttpRequestMessage(HttpMethod.Get, url.TrimStart('!')))
                 {
-                    using (Stream ns = Program.client.GetStreamAsync(url.TrimStart('!')).Result)
+                    using (var response = Program.client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead).Result)
                     {
-                        ns.CopyTo(fs);
+                        if (!response.IsSuccessStatusCode) 
+                            throw new Exception("Could not download file: " + response.StatusCode + " " + response.ReasonPhrase);
+
+                        using (var ns = response.Content.ReadAsStreamAsync().Result)
+                        {
+                            ns.CopyTo(fs);
+                        }
                     }
                 }
+
 
                 RemoveOnBoot(filePath);
             }
@@ -218,6 +230,31 @@ namespace CRUNInstaller
             catch { }
 
             return false;
+        }
+
+        public static bool IsAdministrator()
+        {
+            using var identity = WindowsIdentity.GetCurrent();
+            var principal = new WindowsPrincipal(identity);
+            return principal.IsInRole(WindowsBuiltInRole.Administrator);
+        }
+
+        public static void EnsureElevated()
+        {
+            if (IsAdministrator())
+                return;
+            
+            var processStartInfo = new ProcessStartInfo
+            {
+                FileName = Process.GetCurrentProcess().MainModule.FileName,
+                Arguments = string.Join(" ", Environment.GetCommandLineArgs().Skip(1)),
+                Verb = "runas",
+                UseShellExecute = true
+            };
+
+            Process.Start(processStartInfo);
+
+            Environment.Exit(0);
         }
         public static RegistryHive ParseHive(string hive)
         {
